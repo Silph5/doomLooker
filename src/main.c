@@ -13,7 +13,7 @@ int main(int argc, char* argv[]) {
 
     doomMap* mapData = readWadToMapData(iwadPath, mapName);
     if (!mapData) {
-        printf("Failed to read wad: %s", iwadPath);
+        printf("Failed to read wad: %sz\n", iwadPath);
         return -1;
     }
 

@@ -11,15 +11,13 @@
 #include "mapComponentStructs.h"
 
 typedef struct {
-    char ident[5];
+    char ident[4];
     int lumpsNum;
     int directoryOffset;
 } header;
 
 void readHeader(FILE* wad, header* head) {
     fread(&head->ident, sizeof(char), 4, wad);
-    head->ident[4] = '\0';
-
     fread(&head->lumpsNum, sizeof(int), 1, wad);
     fread(&head->directoryOffset, sizeof(int), 1, wad);
 }
