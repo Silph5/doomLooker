@@ -7,19 +7,19 @@
 #include <stdint.h>
 
 typedef struct lineDef {
-    int16_t v1;
-    int16_t v2;
-    int16_t frontSideNum;
-    int16_t backSideNum;
+    uint16_t v1;
+    uint16_t v2;
+    uint16_t frontSideNum;
+    uint16_t backSideNum;
 } lineDef;
 
 typedef struct sideDef {
-    int16_t xTexOffset;
-    int16_t yTexOffset;
+    uint16_t xTexOffset;
+    uint16_t yTexOffset;
     char upperTexName[8];
     char lowerTexName[8];
     char midTexName[8];
-    int16_t sectFacing;
+    uint16_t sectFacing;
 } sideDef;
 
 typedef struct vertex {
