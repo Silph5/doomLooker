@@ -1,6 +1,23 @@
+#include <ctype.h>
+#include <stdbool.h>
 #include <stdio.h>
+#include <string.h>
+
 #include "readWad.h"
 #include "mapStruct.h"
+
+bool mapNameFormatValid(char* mapName) {
+
+    if (mapName[0] == 'E' && isdigit(mapName[1]) && mapName[2] == 'M' && isdigit(mapName[3])) {
+        return true;
+    }
+
+    if (strncmp(mapName, "MAP", 3) == 0 && isdigit(mapName[3]) && isdigit(mapName[4])) {
+        return true;
+    }
+
+    return false;
+}
 
 int main(int argc, char* argv[]) {
     if (argc < 2) {
@@ -10,6 +27,11 @@ int main(int argc, char* argv[]) {
 
     char* iwadPath = argv[1];
     char* mapName = argv[2];
+
+    if (!mapNameFormatValid(mapName)) {
+        printf("Given map name does not follow expected formats (MAPxx or ExMx)");
+        return -1;
+    }
 
     doomMap* mapData = readWadToMapData(iwadPath, mapName);
     if (!mapData) {
