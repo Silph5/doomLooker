@@ -19,7 +19,7 @@ bool mapNameFormatValid(char* mapName) {
     return false;
 }
 
-int main(int argc, char* argv[]) {
+int main(const int argc, char* argv[]) {
     if (argc < 2) {
         printf("Minimum of 2 arguments needed: \npath to Iwad\nlevel/map name\n");
         return -1;

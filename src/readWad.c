@@ -11,10 +11,10 @@
 #include "mapComponentStructs.h"
 
 //sizes of map component entries in DOOM wad format:
-#define LINEDEFSIZE 14
-#define SIDEDEFSIZE 30
-#define VERTEXSIZE 4
-#define SECTORSIZE 26
+#define LINEDEF_SIZE_BYTES 14
+#define SIDEDEF_SIZE_BYTES 30
+#define VERTEX_SIZE_BYTES 4
+#define SECTOR_SIZE_BYTES 26
 
 typedef struct {
     char ident[5];
@@ -44,25 +44,18 @@ void readHeader(FILE* wad, header* head) {
     fread(&head->directoryOffset, sizeof(int), 1, wad);
 }
 
-bool getTargetMapComposition(FILE* wad, mapLumpsDirEntries* mLumpsEntries, int dirOffset, int lumpsNum, char* mapName) {
+bool getTargetMapComposition(FILE* wad, mapLumpsDirEntries* mLumpsEntries, const int dirOffset, const int lumpsNum, const char* mapName) {
     fseek(wad, dirOffset, 0);
 
-    directoryEntry mMarkerEntry;
-    directoryEntry lDefsEntry;
-    directoryEntry sDefsEntry;
-    directoryEntry vertsEntry;
-    directoryEntry sectsEntry;
-
+    directoryEntry tempMMarkerEntry;
 
     bool foundMap = false;
 
     for (int l = 0; l < lumpsNum; l++) {
-        fread(&mMarkerEntry.lumpOffs, sizeof(int), 1, wad);
-        fread(&mMarkerEntry.lumpSize, sizeof(int), 1, wad);
-        fread(&mMarkerEntry.lumpName, sizeof(char), 8, wad);
+        fread(&tempMMarkerEntry, sizeof(directoryEntry), 1, wad);
 
-        if (strcmp(mMarkerEntry.lumpName, mapName) == 0) {
-            mLumpsEntries->mapMarkerEntry = mMarkerEntry;
+        if (strcmp(tempMMarkerEntry.lumpName, mapName) == 0) {
+            mLumpsEntries->mapMarkerEntry = tempMMarkerEntry;
             foundMap = true;
             break;
         }
@@ -76,31 +69,13 @@ bool getTargetMapComposition(FILE* wad, mapLumpsDirEntries* mLumpsEntries, int d
 
     fseek(wad, 16, SEEK_CUR); //skips the Things lump
 
-    fread(&lDefsEntry.lumpOffs, sizeof(int), 1, wad);
-    fread(&lDefsEntry.lumpSize, sizeof(int), 1, wad);
-    fread(&lDefsEntry.lumpName, sizeof(char), 8, wad);
-
-    mLumpsEntries->lineDefsEntry = lDefsEntry;
-
-    fread(&sDefsEntry.lumpOffs, sizeof(int), 1, wad);
-    fread(&sDefsEntry.lumpSize, sizeof(int), 1, wad);
-    fread(&sDefsEntry.lumpName, sizeof(char), 8, wad);
-
-    mLumpsEntries->sideDefsEntry = sDefsEntry;
-
-    fread(&vertsEntry.lumpOffs, sizeof(int), 1, wad);
-    fread(&vertsEntry.lumpSize, sizeof(int), 1, wad);
-    fread(&vertsEntry.lumpName, sizeof(char), 8, wad);
-
-    mLumpsEntries->verticesEntry = vertsEntry;
+    fread(&mLumpsEntries->lineDefsEntry, sizeof(directoryEntry), 1, wad);
+    fread(&mLumpsEntries->sideDefsEntry, sizeof(directoryEntry), 1, wad);
+    fread(&mLumpsEntries->verticesEntry, sizeof(directoryEntry), 1, wad);
 
     fseek(wad, 48, SEEK_CUR); //skips the Segs, Ssectors and Nodes lump
 
-    fread(&sectsEntry.lumpOffs, sizeof(int), 1, wad);
-    fread(&sectsEntry.lumpSize, sizeof(int), 1, wad);
-    fread(&sectsEntry.lumpName, sizeof(char), 8, wad);
-
-    mLumpsEntries->sectorsEntry = sectsEntry;
+    fread(&mLumpsEntries->sectorsEntry, sizeof(directoryEntry), 1, wad);
 
     return true;
 }
@@ -146,7 +121,7 @@ void readSector (FILE* wad, sector* targetStruct, int offs) {
 }
 
 
-doomMap* readWadToMapData(const char* wadPath, char* mapName) {
+doomMap* readWadToMapData(const char* wadPath, const char* mapName) {
 
     doomMap* map = malloc(sizeof(doomMap));
 
@@ -170,10 +145,10 @@ doomMap* readWadToMapData(const char* wadPath, char* mapName) {
         return NULL;
     }
 
-    map->lineDefNum = mLumpsInfo.lineDefsEntry.lumpSize / LINEDEFSIZE;
-    map->sideDefNum = mLumpsInfo.sideDefsEntry.lumpSize / SIDEDEFSIZE;
-    map->vertexNum = mLumpsInfo.verticesEntry.lumpSize / VERTEXSIZE;
-    map->sectorNum = mLumpsInfo.sectorsEntry.lumpSize / SECTORSIZE;
+    map->lineDefNum = mLumpsInfo.lineDefsEntry.lumpSize / LINEDEF_SIZE_BYTES;
+    map->sideDefNum = mLumpsInfo.sideDefsEntry.lumpSize / SIDEDEF_SIZE_BYTES;
+    map->vertexNum = mLumpsInfo.verticesEntry.lumpSize / VERTEX_SIZE_BYTES;
+    map->sectorNum = mLumpsInfo.sectorsEntry.lumpSize / SECTOR_SIZE_BYTES;
 
     map->lineDefs = malloc(sizeof(lineDef) * map->lineDefNum);
     for (int lineNum = 0; lineNum < map->lineDefNum; lineNum++) {
