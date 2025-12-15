@@ -5,6 +5,7 @@
 
 #include "readWad.h"
 #include "mapStruct.h"
+#include "game.h"
 
 bool mapNameFormatValid(char* mapName) {
 
@@ -39,4 +40,8 @@ int main(const int argc, char* argv[]) {
         return -1;
     }
 
+    if (!startGame(mapData)) {
+        printf("An error occured and the program had to exit");
+        return -1;
+    }
 }

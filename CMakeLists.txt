@@ -12,6 +12,8 @@ add_executable(doomLooker
         src/glad.c
         include/mapStruct.h
         include/mapComponentStructs.h
+        src/game.c
+        include/game.h
 )
 
 target_include_directories(doomLooker PRIVATE
