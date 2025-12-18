@@ -7,7 +7,22 @@
 #include "mapStruct.h"
 #include "mapComponentStructs.h"
 
-int startGame (doomMap* map) {
+static const GLfloat tempVertData[] = {
+    -1.0f, -1.0f, 0.0f,
+    1.0f, -1.0f, 0.0f,
+    0.0f,  1.0f, 0.0f,
+};
+
+void renderFrame(const GLuint vertexBuffer) {
+    glEnableVertexAttribArray(0);
+    glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
+
+    glDrawArrays(GL_TRIANGLES, 0, 3);
+    glDisableVertexAttribArray(0);
+}
+
+int startGame(doomMap* map) {
 
     if (!glfwInit()) {
         fprintf(stderr, "Failed to init GLFW");
@@ -30,16 +45,27 @@ int startGame (doomMap* map) {
 
     glfwMakeContextCurrent(window);
 
-
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
         fprintf(stderr, "Failed to load GLAD\n");
         return 0;
     }
 
+    GLuint vao;
+    glGenVertexArrays(1, &vao);
+    glBindVertexArray(vao);
+
+    GLuint vertexBuffer;
+    glGenBuffers(1, &vertexBuffer);
+    glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(tempVertData), tempVertData, GL_STATIC_DRAW);
+
+
     glfwSetInputMode(window, GLFW_STICKY_KEYS, GL_TRUE);
 
     do{
         glClear( GL_COLOR_BUFFER_BIT );
+
+        renderFrame(vertexBuffer);
 
         glfwSwapBuffers(window);
         glfwPollEvents();
