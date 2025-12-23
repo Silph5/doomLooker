@@ -7,6 +7,9 @@
 #include "mapStruct.h"
 #include "mapComponentStructs.h"
 
+#define WINDOW_HEIGHT 768
+#define WINDOW_WIDTH 1024
+
 static const GLfloat tempVertData[] = {
     -1.0f, -1.0f, 0.0f,
     1.0f, -1.0f, 0.0f,
@@ -16,9 +19,26 @@ static const GLfloat tempVertData[] = {
 void renderFrame(const GLuint program, const GLuint vertexBuffer) {
     glUseProgram(program);
 
+    mat4 model, view, proj, pv, mvp;
+
+    vec3 eye = {4.0f, 3.0f, 3.0f};
+    vec3 center = {0.0f, 0.0f, 0.0f};
+    vec3 up = {0.0f, 1.0f, 0.0f};
+
+    glm_perspective(glm_rad(45.0f), (float) WINDOW_WIDTH / WINDOW_HEIGHT, 0.1f, 100.0f, proj);
+    glm_lookat(eye, center, up, view);
+    glm_mat4_identity(model);
+
+    glm_mat4_mul(proj, view, pv);
+    glm_mat4_mul(pv, model, mvp);
+
     glEnableVertexAttribArray(0);
     glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
+
+    const GLint matID = glGetUniformLocation(program, "mvp");
+    glUniformMatrix4fv(matID, 1, GL_FALSE, &mvp[0][0]);
+
 
     glDrawArrays(GL_TRIANGLES, 0, 3);
     glDisableVertexAttribArray(0);
@@ -29,7 +49,7 @@ GLuint loadShaders(const char* vertexFilePath, const char* fragmentFilePath) {
     GLuint vertexShaderID = glCreateShader(GL_VERTEX_SHADER);
     GLuint fragmentShaderID = glCreateShader(GL_FRAGMENT_SHADER);
 
-    FILE* vertGLSL = fopen(vertexFilePath, "r");
+    FILE* vertGLSL = fopen(vertexFilePath, "rb");
     if (vertGLSL == NULL) {
         fprintf(stderr, "Failed to open shader %s\n", vertexFilePath);
     }
@@ -39,10 +59,12 @@ GLuint loadShaders(const char* vertexFilePath, const char* fragmentFilePath) {
     rewind(vertGLSL);
     char *vBuffer = malloc(vLength + 1);
     fread(vBuffer, 1, vLength, vertGLSL);
+    vBuffer[vLength] = '\0';
+
 
     fclose(vertGLSL);
 
-    FILE* fragGLSL = fopen(fragmentFilePath, "r");
+    FILE* fragGLSL = fopen(fragmentFilePath, "rb");
     if (fragGLSL == NULL) {
         fprintf(stderr, "Failed to open shader %s\n", vertexFilePath);
     }
@@ -52,6 +74,7 @@ GLuint loadShaders(const char* vertexFilePath, const char* fragmentFilePath) {
     rewind(fragGLSL);
     char *fBuffer = malloc(fLength + 1);
     fread(fBuffer, 1, fLength, fragGLSL);
+    fBuffer[fLength] = '\0';
 
     fclose(fragGLSL);
 
@@ -112,7 +135,7 @@ int startGame(doomMap* map) {
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-    GLFWwindow *window = glfwCreateWindow(1024, 768, "Doomlooker", NULL, NULL);
+    GLFWwindow *window = glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "Doomlooker", NULL, NULL);
 
     if (window == NULL) {
         fprintf(stderr, "Failed to open GLFW window.");
