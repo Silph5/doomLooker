@@ -124,9 +124,14 @@ void readSector (FILE* wad, sector* targetStruct, int offs) {
 doomMap* readWadToMapData(const char* wadPath, const char* mapName) {
 
     doomMap* map = malloc(sizeof(doomMap));
+    if (!map) {
+        fprintf(stderr, "failed malloc");
+        return NULL;
+    }
 
     FILE* wad = fopen(wadPath, "rb");
     if (!wad) {
+        free(map);
         return NULL;
     }
 
@@ -134,6 +139,7 @@ doomMap* readWadToMapData(const char* wadPath, const char* mapName) {
     readHeader(wad, &header);
     if (strcmp(header.ident, "IWAD") != 0 && strcmp(header.ident, "PWAD") != 0) {
         fprintf(stderr, "Incorrect file type given.\nfile ident:%s\n", header.ident);
+        free(map);
         return NULL;
     }
 
