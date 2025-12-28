@@ -4,17 +4,8 @@
 #include <glfw3.h>
 #include <cglm/cglm.h>
 
-#include "mapStruct.h"
-#include "mapComponentStructs.h"
-
 #define WINDOW_HEIGHT 768
 #define WINDOW_WIDTH 1024
-
-static const GLfloat tempVertData[] = {
-    -1.0f, -1.0f, 0.0f,
-    1.0f, -1.0f, 0.0f,
-    0.0f,  1.0f, 0.0f,
-};
 
 void renderFrame(const GLuint program, const GLuint vertexBuffer) {
     glUseProgram(program);
@@ -40,7 +31,7 @@ void renderFrame(const GLuint program, const GLuint vertexBuffer) {
     glUniformMatrix4fv(matID, 1, GL_FALSE, &mvp[0][0]);
 
 
-    glDrawArrays(GL_TRIANGLES, 0, 3);
+    glDrawArrays(GL_TRIANGLES, 0, 12);
     glDisableVertexAttribArray(0);
 }
 
@@ -122,7 +113,7 @@ GLuint loadShaders(const char* vertexFilePath, const char* fragmentFilePath) {
     return programID;
 }
 
-int startGame(doomMap* map) {
+int startGame(const float* vertsList) {
 
     if (!glfwInit()) {
         fprintf(stderr, "Failed to init GLFW");
@@ -157,7 +148,7 @@ int startGame(doomMap* map) {
     GLuint vertexBuffer;
     glGenBuffers(1, &vertexBuffer);
     glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(tempVertData), tempVertData, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, 36 * sizeof(float), vertsList, GL_STATIC_DRAW);
 
     GLuint programID = loadShaders( "../shaders/basicvert.glsl", "../shaders/basicfrag.glsl");
 

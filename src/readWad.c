@@ -172,10 +172,10 @@ doomMap* readWadToMapData(const char* wadPath, const char* mapName) {
         printf("sideDef data:\n");
         printf("xTexOffset: %u\n", map->sideDefs[sideNum].xTexOffset);
         printf("yTexOffset: %u\n", map->sideDefs[sideNum].yTexOffset);
-        printf("upperTexName: %.8s\n", map->sideDefs[sideNum].upperTexName);
-        printf("lowerTexName: %.8s\n", map->sideDefs[sideNum].lowerTexName);
-        printf("midTexName: %.8s\n", map->sideDefs[sideNum].midTexName);
-        printf("sectFacing: %u\n\n", map->sideDefs[sideNum].sectFacing);
+        printf("upperTexName:%.8s\n", map->sideDefs[sideNum].upperTexName);
+        printf("lowerTexName:%.8s\n", map->sideDefs[sideNum].lowerTexName);
+        printf("midTexName:%.8s\n", map->sideDefs[sideNum].midTexName);
+        printf("sectFacing:%u\n\n", map->sideDefs[sideNum].sectFacing);
     }
 
     map->vertices = malloc(sizeof(vertex) * map->sideDefNum);

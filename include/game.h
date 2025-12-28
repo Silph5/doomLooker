@@ -5,8 +5,6 @@
 #ifndef DOOMLOOKER_GAME_H
 #define DOOMLOOKER_GAME_H
 
-#include "mapStruct.h"
-
-int startGame (doomMap* map);
+int startGame(const float* vertsList);
 
 #endif //DOOMLOOKER_GAME_H

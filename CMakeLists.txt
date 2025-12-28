@@ -14,6 +14,9 @@ add_executable(doomLooker
         include/mapComponentStructs.h
         src/game.c
         include/game.h
+        src/buildModel.c
+        include/buildModel.h
+        include/vertex.h
 )
 
 target_include_directories(doomLooker PRIVATE

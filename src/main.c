@@ -6,6 +6,7 @@
 #include "readWad.h"
 #include "mapStruct.h"
 #include "game.h"
+#include "buildModel.h"
 
 bool mapNameFormatValid(char* mapName) {
 
@@ -40,7 +41,9 @@ int main(const int argc, char* argv[]) {
         return -1;
     }
 
-    if (!startGame(mapData)) {
+    const float* verts = buildTestVerts();
+
+    if (!startGame(verts)) {
         printf("An error occured and the program had to exit");
         return -1;
     }
