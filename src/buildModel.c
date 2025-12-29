@@ -8,6 +8,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#define TRY(func, onError) do { \
+    int retval = (func); \
+    if (retval != 0) { \
+        fprintf(stderr, "error passed down during model build\n"); \
+        onError; \
+    } \
+} while (0);
+
 int initVertList(vertsList* list, size_t capacity) {
     list->vertPositions = malloc(sizeof(float) * capacity * 3);
     if (!list->vertPositions) {
@@ -33,7 +41,7 @@ int addVert(vertsList* list, const modelVert* vert) {
         list->capacity = newCapacity;
     }
 
-    size_t start = list->size * 3;
+    const size_t start = list->size * 3;
     list->vertPositions[start + 0] = vert->x;
     list->vertPositions[start + 1] = vert->y;
     list->vertPositions[start + 2] = vert->z;
@@ -55,13 +63,13 @@ int addWallFace(vertsList* list, const modelVert* blCorner, const modelVert* trC
     brCorner.z = trCorner->z;
     brCorner.y = blCorner->y;
 
-    addVert(list, &tlCorner);
-    addVert(list, &brCorner);
-    addVert(list, blCorner);
+    TRY(addVert(list, &tlCorner), return -1);
+    TRY(addVert(list, &brCorner), return -1);
+    TRY(addVert(list, blCorner), return -1);
 
-    addVert(list, &tlCorner);
-    addVert(list, trCorner);
-    addVert(list, &brCorner);
+    TRY(addVert(list, &tlCorner), return -1);
+    TRY(addVert(list, trCorner), return -1);
+    TRY(addVert(list, &brCorner), return -1);
 
     return 0;
 }
@@ -80,8 +88,8 @@ float* buildTestVerts() {
 
     modelVert bl2; bl2.x = 1.0f; bl2.y = 1.0f; bl2.z = 0.0f;
 
-    addWallFace(list, &bl, &tr);
-    addWallFace(list, &bl2, &tr2);
+    TRY(addWallFace(list, &bl, &tr), return NULL);
+    TRY(addWallFace(list, &bl2, &tr2), return NULL);
 
     return list->vertPositions;
 }
