@@ -12,6 +12,6 @@ typedef struct {
     float* vertPositions;
 } vertsList;
 
-float* buildTestVerts();
+vertsList* buildTestVerts();
 
 #endif //DOOMLOOKER_BUILDMODEL_H

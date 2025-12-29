@@ -74,9 +74,13 @@ int addWallFace(vertsList* list, const modelVert* blCorner, const modelVert* trC
     return 0;
 }
 
-float* buildTestVerts() {
+vertsList* buildTestVerts() {
 
     vertsList* list = malloc(sizeof(vertsList));
+    if (!list) {
+        fprintf(stderr, "failed to malloc verts container");
+        return NULL;
+    }
 
     initVertList(list, 12);
 
@@ -91,5 +95,5 @@ float* buildTestVerts() {
     TRY(addWallFace(list, &bl, &tr), return NULL);
     TRY(addWallFace(list, &bl2, &tr2), return NULL);
 
-    return list->vertPositions;
+    return list;
 }

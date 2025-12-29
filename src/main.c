@@ -41,7 +41,7 @@ int main(const int argc, char* argv[]) {
         return -1;
     }
 
-    const float* verts = buildTestVerts();
+    const vertsList* verts = buildTestVerts();
 
     if (!startGame(verts)) {
         printf("An error occured and the program had to exit");
