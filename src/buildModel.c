@@ -7,14 +7,18 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <windows.h>
 
-#define TRY(func, onError) do { \
+#define TRY(func, onError, errorMsg) do { \
     int retval = (func); \
     if (retval != 0) { \
-        fprintf(stderr, "error passed down during model build\n"); \
+        fprintf(stderr, errorMsg); \
         onError; \
     } \
 } while (0);
+
+#define MSG_ERROR_VERT_ADD "Failed to add vertex to map model\n"
+#define MSG_ERROR_WALL_ADD "Failed to add wall to map model\n"
 
 int initVertList(vertsList* list, size_t capacity) {
     list->vertPositions = malloc(sizeof(float) * capacity * 3);
@@ -63,13 +67,13 @@ int addWallFace(vertsList* list, const modelVert* blCorner, const modelVert* trC
     brCorner.z = trCorner->z;
     brCorner.y = blCorner->y;
 
-    TRY(addVert(list, &tlCorner), return -1);
-    TRY(addVert(list, &brCorner), return -1);
-    TRY(addVert(list, blCorner), return -1);
+    TRY(addVert(list, &tlCorner), return -1, MSG_ERROR_VERT_ADD);
+    TRY(addVert(list, &brCorner), return -1, MSG_ERROR_VERT_ADD);
+    TRY(addVert(list, blCorner), return -1, MSG_ERROR_VERT_ADD);
 
-    TRY(addVert(list, &tlCorner), return -1);
-    TRY(addVert(list, trCorner), return -1);
-    TRY(addVert(list, &brCorner), return -1);
+    TRY(addVert(list, &tlCorner), return -1, MSG_ERROR_VERT_ADD);
+    TRY(addVert(list, trCorner), return -1, MSG_ERROR_VERT_ADD);
+    TRY(addVert(list, &brCorner), return -1, MSG_ERROR_VERT_ADD);
 
     return 0;
 }
@@ -92,8 +96,8 @@ vertsList* buildTestVerts() {
 
     modelVert bl2; bl2.x = 1.0f; bl2.y = 1.0f; bl2.z = 0.0f;
 
-    TRY(addWallFace(list, &bl, &tr), return NULL);
-    TRY(addWallFace(list, &bl2, &tr2), return NULL);
+    TRY(addWallFace(list, &bl, &tr), return NULL, MSG_ERROR_WALL_ADD);
+    TRY(addWallFace(list, &bl2, &tr2), return NULL, MSG_ERROR_WALL_ADD);
 
     return list;
 }

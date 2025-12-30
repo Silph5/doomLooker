@@ -42,7 +42,10 @@ int main(const int argc, char* argv[]) {
     }
 
     const vertsList* verts = buildTestVerts();
-
+    if (!verts) {
+        printf("Failed to build map model\n");
+        return -1;
+    }
     if (!startGame(verts)) {
         printf("An error occured and the program had to exit");
         return -1;
