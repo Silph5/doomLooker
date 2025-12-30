@@ -115,9 +115,9 @@ GLuint loadShaders(const char* vertexFilePath, const char* fragmentFilePath) {
     return programID;
 }
 
-int startGame(const vertsList* vertsContainer) {
+int startGame(const mapModel* map) {
 
-    float* vertPositions = vertsContainer->vertPositions;
+    float* vertCoords = map->vertCoords;
     if (!glfwInit()) {
         fprintf(stderr, "Failed to init GLFW");
         return 0;
@@ -151,7 +151,7 @@ int startGame(const vertsList* vertsContainer) {
     GLuint vertexBuffer;
     glGenBuffers(1, &vertexBuffer);
     glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer);
-    glBufferData(GL_ARRAY_BUFFER, 36 * sizeof(float), vertPositions, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, 36 * sizeof(float), vertCoords, GL_STATIC_DRAW);
 
     GLuint programID = loadShaders( "../shaders/basicvert.glsl", "../shaders/basicfrag.glsl");
 

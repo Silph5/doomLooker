@@ -20,42 +20,42 @@
 #define MSG_ERROR_VERT_ADD "Failed to add vertex to map model\n"
 #define MSG_ERROR_WALL_ADD "Failed to add wall to map model\n"
 
-int initVertList(vertsList* list, size_t capacity) {
-    list->vertPositions = malloc(sizeof(float) * capacity * 3);
-    if (!list->vertPositions) {
+int initMapModel(mapModel* model, size_t capacity) {
+    model->vertCoords = malloc(sizeof(float) * capacity * 3);
+    if (!model->vertCoords) {
         return -1;
     }
 
-    list->size = 0;
-    list->capacity = capacity;
+    model->vertCount = 0;
+    model->vertCapacity = capacity;
     return 0;
 }
 
-int addVert(vertsList* list, const modelVert* vert) {
+int addVert(mapModel* model, const modelVert* vert) {
 
-    if (list->size == list->capacity) {
+    if (model->vertCount == model->vertCapacity) {
         fprintf(stderr, "info: expected vertex capacity exceeded\n");
-        size_t newCapacity = list->capacity * 2;
-        float* temp = realloc(list->vertPositions,sizeof(float) * newCapacity * 3);
+        size_t newCapacity = model->vertCount * 2;
+        float* temp = realloc(model->vertCoords,sizeof(float) * newCapacity * 3);
         if (!temp) {
             fprintf(stderr, "failed realloc during model build\n");
             return -1;
         }
-        list->vertPositions = temp;
-        list->capacity = newCapacity;
+        model->vertCoords = temp;
+        model->vertCapacity = newCapacity;
     }
 
-    const size_t start = list->size * 3;
-    list->vertPositions[start + 0] = vert->x;
-    list->vertPositions[start + 1] = vert->y;
-    list->vertPositions[start + 2] = vert->z;
+    const size_t start = model->vertCount * 3;
+    model->vertCoords[start + 0] = vert->x;
+    model->vertCoords[start + 1] = vert->y;
+    model->vertCoords[start + 2] = vert->z;
 
-    list->size++;
+    model->vertCount++;
 
     return 0;
 }
 
-int addWallFace(vertsList* list, const modelVert* blCorner, const modelVert* trCorner) {
+int addWallFace(mapModel* model, const modelVert* blCorner, const modelVert* trCorner) {
 
     modelVert tlCorner;
     tlCorner.x = blCorner->x;
@@ -67,26 +67,26 @@ int addWallFace(vertsList* list, const modelVert* blCorner, const modelVert* trC
     brCorner.z = trCorner->z;
     brCorner.y = blCorner->y;
 
-    TRY(addVert(list, &tlCorner), return -1, MSG_ERROR_VERT_ADD);
-    TRY(addVert(list, &brCorner), return -1, MSG_ERROR_VERT_ADD);
-    TRY(addVert(list, blCorner), return -1, MSG_ERROR_VERT_ADD);
+    TRY(addVert(model, &tlCorner), return -1, MSG_ERROR_VERT_ADD);
+    TRY(addVert(model, &brCorner), return -1, MSG_ERROR_VERT_ADD);
+    TRY(addVert(model, blCorner), return -1, MSG_ERROR_VERT_ADD);
 
-    TRY(addVert(list, &tlCorner), return -1, MSG_ERROR_VERT_ADD);
-    TRY(addVert(list, trCorner), return -1, MSG_ERROR_VERT_ADD);
-    TRY(addVert(list, &brCorner), return -1, MSG_ERROR_VERT_ADD);
+    TRY(addVert(model, &tlCorner), return -1, MSG_ERROR_VERT_ADD);
+    TRY(addVert(model, trCorner), return -1, MSG_ERROR_VERT_ADD);
+    TRY(addVert(model, &brCorner), return -1, MSG_ERROR_VERT_ADD);
 
     return 0;
 }
 
-vertsList* buildTestVerts() {
+mapModel* buildTestVerts() {
 
-    vertsList* list = malloc(sizeof(vertsList));
+    mapModel* list = malloc(sizeof(mapModel));
     if (!list) {
         fprintf(stderr, "failed to malloc verts container");
         return NULL;
     }
 
-    initVertList(list, 12);
+    initMapModel(list, 12);
 
     modelVert bl; bl.x = 0.0f; bl.y = 0.0f; bl.z = 1.0f;
 

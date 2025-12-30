@@ -5,13 +5,8 @@
 #ifndef DOOMLOOKER_BUILDMODEL_H
 #define DOOMLOOKER_BUILDMODEL_H
 #include <stddef.h>
+#include "model.h"
 
-typedef struct {
-    size_t size;
-    size_t capacity;
-    float* vertPositions;
-} vertsList;
-
-vertsList* buildTestVerts();
+mapModel* buildTestVerts();
 
 #endif //DOOMLOOKER_BUILDMODEL_H

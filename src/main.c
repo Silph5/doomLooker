@@ -41,7 +41,7 @@ int main(const int argc, char* argv[]) {
         return -1;
     }
 
-    const vertsList* verts = buildTestVerts();
+    const mapModel* verts = buildTestVerts();
     if (!verts) {
         printf("Failed to build map model\n");
         return -1;

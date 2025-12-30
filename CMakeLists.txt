@@ -17,6 +17,7 @@ add_executable(doomLooker
         src/buildModel.c
         include/buildModel.h
         include/vertex.h
+        include/model.h
 )
 
 target_include_directories(doomLooker PRIVATE
