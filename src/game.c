@@ -159,6 +159,8 @@ int startGame(const mapModel* map) {
 
     glfwSetInputMode(window, GLFW_STICKY_KEYS, GL_TRUE);
 
+    glfwSwapInterval(1);
+
     do{
         glClear( GL_COLOR_BUFFER_BIT );
 
