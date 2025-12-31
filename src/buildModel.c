@@ -89,8 +89,8 @@ int addSide(mapModel* model, sideDef* side, const sector* sectFacing, sector* se
     }
 
     //these verts are for addWallFace and are just created here to be modified and passed throughout all of this funcion
-    modelVert* blVert = malloc(sizeof(modelVert));
-    modelVert* trVert = malloc(sizeof(modelVert));
+    modelVert blVert;
+    modelVert trVert;
 
     if (!sectBehind) {
         if (side->midTexName[0] == '-') {
@@ -98,15 +98,38 @@ int addSide(mapModel* model, sideDef* side, const sector* sectFacing, sector* se
         }
 
 
-        blVert->x = v1->x; blVert->z = v1->y; blVert->y = sectFacing->floorHeight;
-        trVert->x = v2->x; trVert->z = v2->y; trVert->y = sectFacing->ceilHeight;
+        blVert.x = v1->x; blVert.z = v1->y; blVert.y = sectFacing->floorHeight;
+        trVert.x = v2->x; trVert.z = v2->y; trVert.y = sectFacing->ceilHeight;
 
-        TRY(addWallFace(model, blVert, trVert), return -1, MSG_ERROR_WALL_ADD)
+        TRY(addWallFace(model, &blVert, &trVert), return -1, MSG_ERROR_WALL_ADD)
+
+        return 0;
+    }
+
+    if (side->midTexName[0] != '-') {
+        blVert.x = v1->x; blVert.z = v1->y; blVert.y = sectBehind->floorHeight;
+        trVert.x = v2->x; trVert.z = v2->y; trVert.y = sectBehind->ceilHeight;
+
+        TRY(addWallFace(model, &blVert, &trVert), return -1, MSG_ERROR_WALL_ADD)
 
     }
 
-    free(blVert);
-    free(trVert);
+    if (side->upperTexName[0] != '-') {
+        blVert.x = v1->x; blVert.z = v1->y; blVert.y = sectBehind->ceilHeight;
+        trVert.x = v2->x; trVert.z = v2->y; trVert.y = sectFacing->ceilHeight;
+
+        TRY(addWallFace(model, &blVert, &trVert), return -1, MSG_ERROR_WALL_ADD)
+
+    }
+
+    if (side->lowerTexName[0] != '-') {
+        blVert.x = v1->x; blVert.z = v1->y; blVert.y = sectFacing->floorHeight;
+        trVert.x = v2->x; trVert.z = v2->y; trVert.y = sectBehind->floorHeight;
+
+        TRY(addWallFace(model, &blVert, &trVert), return -1, MSG_ERROR_WALL_ADD)
+
+    }
+
     return 0;
 }
 
@@ -136,12 +159,12 @@ mapModel* buildMapModel(doomMap* mapData) {
             frontSector = &mapData->sectors[frontSide->sectFacing];
         }
         if (mapData->lineDefs[lineNum].backSideNum != 65535) {
-            backSide = &mapData->sideDefs[mapData->lineDefs[lineNum].frontSideNum];
+            backSide = &mapData->sideDefs[mapData->lineDefs[lineNum].backSideNum];
             backSector = &mapData->sectors[backSide->sectFacing];
         }
 
-        TRY(addSide(model, frontSide, frontSector, backSector, v1, v2), continue, MSG_ERROR_SIDE_ADD);
-        TRY(addSide(model, backSide, backSector, frontSector, v2, v1), continue, MSG_ERROR_SIDE_ADD);
+        TRY(addSide(model, frontSide, frontSector, backSector, v1, v2), break, MSG_ERROR_SIDE_ADD);
+        TRY(addSide(model, backSide, backSector, frontSector, v2, v1), break, MSG_ERROR_SIDE_ADD);
 
     }
 
