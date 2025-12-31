@@ -9,18 +9,21 @@
 #define WINDOW_HEIGHT 768
 #define WINDOW_WIDTH 1024
 
-void renderFrame(const GLuint program, const GLuint vertexBuffer, const size_t vertCount) {
+#define MOUSE_SENS 0.05f
+
+void renderFrame(const GLuint program, const GLuint vertexBuffer, const size_t vertCount, vec3 camPos, vec3 direction) {
     glUseProgram(program);
 
     mat4 model, view, proj, pv, mvp;
+    glm_perspective(glm_rad(45.0f), (float) WINDOW_WIDTH / WINDOW_HEIGHT, 0.1f, 4000.0f, proj);
 
-    vec3 eye = {-400.0f, 650.0f, -400.0f};
-    vec3 center = {2944.0f, -200.0f, -680.0f};
+    vec3 center;
+    glm_vec3_add(camPos, direction, center);
     vec3 up = {0.0f, 1.0f, 0.0f};
-
-    glm_perspective(glm_rad(45.0f), (float) WINDOW_WIDTH / WINDOW_HEIGHT, 0.1f, 1500.0f, proj);
-    glm_lookat(eye, center, up, view);
+    glm_lookat(camPos, center, up, view);
     glm_mat4_identity(model);
+    vec3 translation = {0.0f, 0.0f, 0.0f};
+    glm_translate(model, translation);
 
     glm_mat4_mul(proj, view, pv);
     glm_mat4_mul(pv, model, mvp);
@@ -115,6 +118,36 @@ GLuint loadShaders(const char* vertexFilePath, const char* fragmentFilePath) {
     return programID;
 }
 
+void handleInputs(GLFWwindow* window, vec3 camPos, vec2 lookAngle, vec3 direction, double deltaTime) {
+    glfwPollEvents();
+
+    double cursorX, cursorY;
+    glfwGetCursorPos(window, &cursorX, &cursorY);
+
+    int centreX = WINDOW_WIDTH/2;
+    int centreY = WINDOW_HEIGHT/2;
+
+    int relCursorX = (int)cursorX - centreX;
+    int relCursorY = (int)cursorY - centreY;
+
+    glfwSetCursorPos(window, centreX, centreY);
+
+    lookAngle[0] -= MOUSE_SENS * (float) deltaTime * (float) relCursorX;
+    lookAngle[1] -= MOUSE_SENS * (float) deltaTime * (float) relCursorY;
+
+    if (lookAngle[1] <= -1.55){lookAngle[1] =  -1.55f;}
+    if (lookAngle[1] >= 1.55){lookAngle[1] =  1.55f;}
+
+    direction[0] = cosf(lookAngle[1]) * sinf(lookAngle[0]);
+    direction[1] = sinf(lookAngle[1]);
+    direction[2] = cosf(lookAngle[1]) * cosf(lookAngle[0]);
+
+    //vec3 right = {sinf(lookAngle[0] - CGLM_PI / 2.0f), 0.0f, cosf(lookAngle[0] - CGLM_PI / 2.0f)};
+    vec3 forward;
+    glm_normalize_to(direction, forward);
+
+}
+
 int startGame(const mapModel* map) {
 
     float* vertCoords = map->vertCoords;
@@ -160,11 +193,25 @@ int startGame(const mapModel* map) {
     glfwSetInputMode(window, GLFW_STICKY_KEYS, GL_TRUE);
 
     glfwSwapInterval(1);
+    glfwSetInputMode(window, GLFW_STICKY_KEYS, GL_TRUE);
+    glfwSetInputMode(window, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
 
+    vec3 camPos = {0.0f, 0.0f, 5.0f};
+    vec2 lookAngle = {3.14f, 0.0f};
+    vec3 direction = {};
+
+    double currentTime = glfwGetTime();
     do{
         glClear( GL_COLOR_BUFFER_BIT );
 
-        renderFrame(programID, vertexBuffer, vertCount);
+        double newTime = glfwGetTime();
+        double deltaTime = newTime - currentTime;
+        currentTime = glfwGetTime();
+
+        handleInputs(window, camPos, lookAngle, direction, deltaTime);
+
+        renderFrame(programID, vertexBuffer, vertCount, camPos, direction);
 
         glfwSwapBuffers(window);
         glfwPollEvents();
