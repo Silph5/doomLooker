@@ -9,16 +9,16 @@
 #define WINDOW_HEIGHT 768
 #define WINDOW_WIDTH 1024
 
-void renderFrame(const GLuint program, const GLuint vertexBuffer) {
+void renderFrame(const GLuint program, const GLuint vertexBuffer, const size_t vertCount) {
     glUseProgram(program);
 
     mat4 model, view, proj, pv, mvp;
 
-    vec3 eye = {4.0f, 3.0f, 3.0f};
-    vec3 center = {0.0f, 0.0f, 0.0f};
+    vec3 eye = {-400.0f, 650.0f, -400.0f};
+    vec3 center = {2944.0f, -200.0f, -680.0f};
     vec3 up = {0.0f, 1.0f, 0.0f};
 
-    glm_perspective(glm_rad(45.0f), (float) WINDOW_WIDTH / WINDOW_HEIGHT, 0.1f, 100.0f, proj);
+    glm_perspective(glm_rad(45.0f), (float) WINDOW_WIDTH / WINDOW_HEIGHT, 0.1f, 1500.0f, proj);
     glm_lookat(eye, center, up, view);
     glm_mat4_identity(model);
 
@@ -33,7 +33,7 @@ void renderFrame(const GLuint program, const GLuint vertexBuffer) {
     glUniformMatrix4fv(matID, 1, GL_FALSE, &mvp[0][0]);
 
 
-    glDrawArrays(GL_TRIANGLES, 0, 12);
+    glDrawArrays(GL_TRIANGLES, 0, (GLsizei) vertCount);
     glDisableVertexAttribArray(0);
 }
 
@@ -118,6 +118,8 @@ GLuint loadShaders(const char* vertexFilePath, const char* fragmentFilePath) {
 int startGame(const mapModel* map) {
 
     float* vertCoords = map->vertCoords;
+    size_t vertCount = map->vertCount;
+
     if (!glfwInit()) {
         fprintf(stderr, "Failed to init GLFW");
         return 0;
@@ -151,7 +153,7 @@ int startGame(const mapModel* map) {
     GLuint vertexBuffer;
     glGenBuffers(1, &vertexBuffer);
     glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer);
-    glBufferData(GL_ARRAY_BUFFER, 36 * sizeof(float), vertCoords, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, vertCount * 3 * sizeof(float), vertCoords, GL_STATIC_DRAW);
 
     GLuint programID = loadShaders( "../shaders/basicvert.glsl", "../shaders/basicfrag.glsl");
 
@@ -160,7 +162,7 @@ int startGame(const mapModel* map) {
     do{
         glClear( GL_COLOR_BUFFER_BIT );
 
-        renderFrame(programID, vertexBuffer);
+        renderFrame(programID, vertexBuffer, vertCount);
 
         glfwSwapBuffers(window);
         glfwPollEvents();

@@ -41,12 +41,13 @@ int main(const int argc, char* argv[]) {
         return -1;
     }
 
-    const mapModel* verts = buildTestVerts();
-    if (!verts) {
+    const mapModel* model = buildMapModel(mapData);
+    if (!model) {
         printf("Failed to build map model\n");
         return -1;
     }
-    if (!startGame(verts)) {
+
+    if (!startGame(model)) {
         printf("An error occured and the program had to exit");
         return -1;
     }

@@ -5,6 +5,7 @@
 #ifndef DOOMLOOKER_GAME_H
 #define DOOMLOOKER_GAME_H
 
-int startGame(const float* vertsList);
+#include "model.h"
+int startGame(const mapModel* vertsList);
 
 #endif //DOOMLOOKER_GAME_H

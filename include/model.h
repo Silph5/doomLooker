@@ -4,6 +4,7 @@
 
 #ifndef DOOMLOOKER_MODEL_H
 #define DOOMLOOKER_MODEL_H
+#include <stddef.h>
 
 typedef struct {
     size_t vertCount;

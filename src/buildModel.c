@@ -5,6 +5,9 @@
 #include "../include/buildModel.h"
 #include "vertex.h"
 
+#include "mapStruct.h"
+#include "mapComponentStructs.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <windows.h>
@@ -19,6 +22,8 @@
 
 #define MSG_ERROR_VERT_ADD "Failed to add vertex to map model\n"
 #define MSG_ERROR_WALL_ADD "Failed to add wall to map model\n"
+#define MSG_ERROR_SIDE_ADD "Failed to add sidedef to map model\n"
+#define MSG_ERROR_MAP_INIT "Failed to init map model\n"
 
 int initMapModel(mapModel* model, size_t capacity) {
     model->vertCoords = malloc(sizeof(float) * capacity * 3);
@@ -78,26 +83,67 @@ int addWallFace(mapModel* model, const modelVert* blCorner, const modelVert* trC
     return 0;
 }
 
-mapModel* buildTestVerts() {
+int addSide(mapModel* model, sideDef* side, const sector* sectFacing, sector* sectBehind, const vertex* v1, const vertex* v2) {
+    if (!side) {
+        return 0;
+    }
 
-    mapModel* list = malloc(sizeof(mapModel));
-    if (!list) {
+    //these verts are for addWallFace and are just created here to be modified and passed throughout all of this funcion
+    modelVert* blVert = malloc(sizeof(modelVert));
+    modelVert* trVert = malloc(sizeof(modelVert));
+
+    if (!sectBehind) {
+        if (side->midTexName[0] == '-') {
+            return 0;
+        }
+
+
+        blVert->x = v1->x; blVert->z = v1->y; blVert->y = sectFacing->floorHeight;
+        trVert->x = v2->x; trVert->z = v2->y; trVert->y = sectFacing->ceilHeight;
+
+        TRY(addWallFace(model, blVert, trVert), return -1, MSG_ERROR_WALL_ADD)
+
+    }
+
+    free(blVert);
+    free(trVert);
+    return 0;
+}
+
+mapModel* buildMapModel(doomMap* mapData) {
+
+    mapModel* model = malloc(sizeof(mapModel));
+    if (!model) {
         fprintf(stderr, "failed to malloc verts container");
         return NULL;
     }
 
-    initMapModel(list, 12);
+    //temporarily only init for max sidedef verts until sectors added
+    TRY(initMapModel(model, mapData->sideDefNum * 18), return NULL, MSG_ERROR_MAP_INIT);
 
-    modelVert bl; bl.x = 0.0f; bl.y = 0.0f; bl.z = 1.0f;
+    //sidedefs
+    for (int lineNum = 0; lineNum < mapData->lineDefNum; lineNum++) {
+        sideDef* frontSide = NULL;
+        sideDef* backSide = NULL;
+        sector* frontSector = NULL;
+        sector* backSector = NULL;
 
-    modelVert tr; tr.x = 1.0f; tr.y = 1.0f; tr.z = 0.0f;
+        vertex* v1 = &mapData->vertices[mapData->lineDefs[lineNum].v1];
+        vertex* v2 = &mapData->vertices[mapData->lineDefs[lineNum].v2];
 
-    modelVert tr2; tr2.x = 1.0f; tr2.y = 0.0f; tr2.z = -1.0f;
+        if (mapData->lineDefs[lineNum].frontSideNum != 65535) {
+            frontSide = &mapData->sideDefs[mapData->lineDefs[lineNum].frontSideNum];
+            frontSector = &mapData->sectors[frontSide->sectFacing];
+        }
+        if (mapData->lineDefs[lineNum].backSideNum != 65535) {
+            backSide = &mapData->sideDefs[mapData->lineDefs[lineNum].frontSideNum];
+            backSector = &mapData->sectors[backSide->sectFacing];
+        }
 
-    modelVert bl2; bl2.x = 1.0f; bl2.y = 1.0f; bl2.z = 0.0f;
+        TRY(addSide(model, frontSide, frontSector, backSector, v1, v2), continue, MSG_ERROR_SIDE_ADD);
+        TRY(addSide(model, backSide, backSector, frontSector, v2, v1), continue, MSG_ERROR_SIDE_ADD);
 
-    TRY(addWallFace(list, &bl, &tr), return NULL, MSG_ERROR_WALL_ADD);
-    TRY(addWallFace(list, &bl2, &tr2), return NULL, MSG_ERROR_WALL_ADD);
+    }
 
-    return list;
+    return model;
 }

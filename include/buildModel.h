@@ -4,9 +4,10 @@
 
 #ifndef DOOMLOOKER_BUILDMODEL_H
 #define DOOMLOOKER_BUILDMODEL_H
-#include <stddef.h>
+
+#include "mapStruct.h"
 #include "model.h"
 
-mapModel* buildTestVerts();
+mapModel* buildMapModel(doomMap* mapData);
 
 #endif //DOOMLOOKER_BUILDMODEL_H
