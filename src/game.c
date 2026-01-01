@@ -6,10 +6,11 @@
 
 #include "buildModel.h"
 
-#define WINDOW_HEIGHT 768
-#define WINDOW_WIDTH 1024
+#define WINDOW_HEIGHT 800
+#define WINDOW_WIDTH 1500
 
 #define MOUSE_SENS 0.05f
+#define MOVE_SPEED 100.0f
 
 void renderFrame(const GLuint program, const GLuint vertexBuffer, const size_t vertCount, vec3 camPos, vec3 direction) {
     glUseProgram(program);
@@ -142,9 +143,43 @@ void handleInputs(GLFWwindow* window, vec3 camPos, vec2 lookAngle, vec3 directio
     direction[1] = sinf(lookAngle[1]);
     direction[2] = cosf(lookAngle[1]) * cosf(lookAngle[0]);
 
-    //vec3 right = {sinf(lookAngle[0] - CGLM_PI / 2.0f), 0.0f, cosf(lookAngle[0] - CGLM_PI / 2.0f)};
+    vec3 right = {sinf(lookAngle[0] - CGLM_PI / 2.0f), 0.0f, cosf(lookAngle[0] - CGLM_PI / 2.0f)};
     vec3 forward;
     glm_normalize_to(direction, forward);
+
+    vec3 cross, mov_x, mov_y, mov_z;
+    glm_cross(right, direction, cross);
+
+    float speedFactor = 1.0f;
+
+    if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) {
+        speedFactor *= 2;
+    }
+
+    glm_vec3_scale(right, (float) deltaTime * MOVE_SPEED * speedFactor, mov_x);
+    glm_vec3_scale(cross, (float) deltaTime * MOVE_SPEED * speedFactor, mov_y);
+    glm_vec3_scale(forward, (float) deltaTime * MOVE_SPEED * speedFactor, mov_z);
+
+    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
+        vec3 output_position = {};
+        glm_vec3_add(camPos, mov_z, output_position);
+        glm_vec3_copy(output_position, camPos);
+    }
+    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
+        vec3 output_position = {};
+        glm_vec3_sub(camPos, mov_z, output_position);
+        glm_vec3_copy(output_position, camPos);
+    }
+    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
+        vec3 output_position = {};
+        glm_vec3_sub(camPos, mov_x, output_position);
+        glm_vec3_copy(output_position, camPos);
+    }
+    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
+        vec3 output_position = {};
+        glm_vec3_add(camPos, mov_x, output_position);
+        glm_vec3_copy(output_position, camPos);
+    }
 
 }
 

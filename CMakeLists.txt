@@ -18,6 +18,7 @@ add_executable(doomLooker
         include/buildModel.h
         include/vertex.h
         include/model.h
+        include/ut_hash/uthash.h
 )
 
 target_include_directories(doomLooker PRIVATE

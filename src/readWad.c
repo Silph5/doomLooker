@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "ut_hash/uthash.h"
 #include "mapStruct.h"
 #include "mapComponentStructs.h"
 
