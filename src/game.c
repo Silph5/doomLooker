@@ -160,26 +160,32 @@ void handleInputs(GLFWwindow* window, vec3 camPos, vec2 lookAngle, vec3 directio
     glm_vec3_scale(cross, (float) deltaTime * MOVE_SPEED * speedFactor, mov_y);
     glm_vec3_scale(forward, (float) deltaTime * MOVE_SPEED * speedFactor, mov_z);
 
+    vec3 outPos;
+    glm_vec3_copy(camPos, outPos);
+
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
-        vec3 output_position = {};
-        glm_vec3_add(camPos, mov_z, output_position);
-        glm_vec3_copy(output_position, camPos);
+        glm_vec3_add(outPos, mov_z, outPos);
     }
     if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
-        vec3 output_position = {};
-        glm_vec3_sub(camPos, mov_z, output_position);
-        glm_vec3_copy(output_position, camPos);
+        glm_vec3_sub(outPos, mov_z, outPos);
     }
     if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
-        vec3 output_position = {};
-        glm_vec3_sub(camPos, mov_x, output_position);
-        glm_vec3_copy(output_position, camPos);
+        glm_vec3_sub(outPos, mov_x, outPos);
     }
     if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
-        vec3 output_position = {};
-        glm_vec3_add(camPos, mov_x, output_position);
-        glm_vec3_copy(output_position, camPos);
+        glm_vec3_add(outPos, mov_x, outPos);
     }
+
+    //y-aligned upwards and downwards movement
+    if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
+        vec3 up = {0.0f, 2.0f, 0.0f};
+        glm_vec3_add(outPos, up, outPos);
+    }
+    if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS) {
+        vec3 down = {0.0f, -2.0f, 0.0f};
+        glm_vec3_add(outPos, down, outPos);
+    }
+    glm_vec3_copy(outPos, camPos);
 
 }
 
