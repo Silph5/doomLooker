@@ -35,7 +35,16 @@ typedef struct {
     directoryEntry sideDefsEntry;
     directoryEntry verticesEntry;
     directoryEntry sectorsEntry;
-} mapLumpsDirEntries;
+} mapLumps;
+
+typedef struct {
+    mapLumps targMapLumps;
+    directoryEntry pnames;
+    directoryEntry textureDefs1;
+    directoryEntry textureDefs2; //texture2's existence is a pain and only really matters if you are using doom 1 as an iwad
+
+    directoryEntry* patches;
+} reqWadLumps;
 
 void readHeader(FILE* wad, header* head) {
     fread(&head->ident, sizeof(char), 4, wad);
@@ -45,26 +54,7 @@ void readHeader(FILE* wad, header* head) {
     fread(&head->directoryOffset, sizeof(int), 1, wad);
 }
 
-bool getTargetMapComposition(FILE* wad, mapLumpsDirEntries* mLumpsEntries, const int dirOffset, const int lumpsNum, const char* mapName) {
-    fseek(wad, dirOffset, 0);
-
-    directoryEntry tempMMarkerEntry;
-
-    bool foundMap = false;
-
-    for (int l = 0; l < lumpsNum; l++) {
-        fread(&tempMMarkerEntry, sizeof(directoryEntry), 1, wad);
-
-        if (strcmp(tempMMarkerEntry.lumpName, mapName) == 0) {
-            mLumpsEntries->mapMarkerEntry = tempMMarkerEntry;
-            foundMap = true;
-            break;
-        }
-    }
-
-    if (foundMap == false) {
-        return false;
-    }
+void getTargetMapComposition(FILE* wad, mapLumps* mLumpsEntries, int* entryNum) {
 
     //the lumps in each map follow a set order, so I can seek through them.
 
@@ -78,7 +68,38 @@ bool getTargetMapComposition(FILE* wad, mapLumpsDirEntries* mLumpsEntries, const
 
     fread(&mLumpsEntries->sectorsEntry, sizeof(directoryEntry), 1, wad);
 
-    return true;
+    *entryNum += 8;
+
+}
+
+int getRequiredLumpEntries(FILE* wad, reqWadLumps* wadLumps, const header* header, const char* targetMap) {
+    fseek(wad, header->directoryOffset, 0);
+
+    directoryEntry tempEntry;
+
+    for (int entryNum = 0; entryNum < header->lumpsNum; entryNum++) {
+        fread(&tempEntry, sizeof(directoryEntry), 1, wad);
+
+        if (strncmp(tempEntry.lumpName, "TEXTURE1", 8) == 0) {
+            wadLumps->textureDefs1 = tempEntry;
+            continue;
+        }
+        if (strncmp(tempEntry.lumpName, "TEXTURE2", 8) == 0) {
+            wadLumps->textureDefs2 = tempEntry;
+            continue;
+        }
+        if (strncmp(tempEntry.lumpName, "PNAMES", 6) == 0) {
+            wadLumps->pnames = tempEntry;
+            continue;
+        }
+        if (strcmp(tempEntry.lumpName, targetMap) == 0) {
+            getTargetMapComposition(wad, &wadLumps->targMapLumps, &entryNum);
+            continue;
+        }
+        printf("%.8s\n", tempEntry.lumpName);
+    }
+
+    return 0;
 }
 
 void readLineDef (FILE* wad, lineDef* targetStruct, int offs) {
@@ -121,10 +142,39 @@ void readSector (FILE* wad, sector* targetStruct, int offs) {
     fread(&targetStruct->brightness, sizeof(int16_t), 1, wad);
 }
 
+void readMapGeometry (FILE* wad, doomMap* map, mapLumps* mLumpsInfo) {
+
+    map->lineDefNum = mLumpsInfo->lineDefsEntry.lumpSize / LINEDEF_SIZE_BYTES;
+    map->sideDefNum = mLumpsInfo->sideDefsEntry.lumpSize / SIDEDEF_SIZE_BYTES;
+    map->vertexNum = mLumpsInfo->verticesEntry.lumpSize / VERTEX_SIZE_BYTES;
+    map->sectorNum = mLumpsInfo->sectorsEntry.lumpSize / SECTOR_SIZE_BYTES;
+
+    map->lineDefs = malloc(sizeof(lineDef) * map->lineDefNum);
+    for (int lineNum = 0; lineNum < map->lineDefNum; lineNum++) {
+        readLineDef(wad, &map->lineDefs[lineNum], mLumpsInfo->lineDefsEntry.lumpOffs + (lineNum * 14));
+    }
+
+    map->sideDefs = malloc(sizeof(sideDef) * map->sideDefNum);
+    for (int sideNum = 0; sideNum < map->sideDefNum; sideNum++) {
+        readSideDef(wad, &map->sideDefs[sideNum], mLumpsInfo->sideDefsEntry.lumpOffs + (sideNum * 30));
+    }
+
+    map->vertices = malloc(sizeof(vertex) * map->sideDefNum);
+    for (int vertNum = 0; vertNum < map->vertexNum; vertNum++) {
+        readVertex(wad, &map->vertices[vertNum], mLumpsInfo->verticesEntry.lumpOffs + (vertNum * 4));
+    }
+
+    map->sectors = malloc(sizeof(sector) * map->sectorNum);
+    for (int sectNum = 0; sectNum < map->sectorNum; sectNum++) {
+        readSector(wad, &map->sectors[sectNum], mLumpsInfo->sectorsEntry.lumpOffs + (sectNum * 26));
+    }
+
+}
 
 doomMap* readWadToMapData(const char* wadPath, const char* mapName) {
 
     doomMap* map = malloc(sizeof(doomMap));
+
     if (!map) {
         fprintf(stderr, "failed malloc");
         return NULL;
@@ -144,59 +194,10 @@ doomMap* readWadToMapData(const char* wadPath, const char* mapName) {
         return NULL;
     }
 
-    mapLumpsDirEntries mLumpsInfo;
-    bool foundMap = getTargetMapComposition(wad, &mLumpsInfo, header.directoryOffset, header.lumpsNum, mapName);
+    reqWadLumps reqLumpEntries;
+    getRequiredLumpEntries(wad, &reqLumpEntries, &header, mapName);
 
-    if (!foundMap) {
-        fprintf(stderr, "Failed to locate map lump.\n");
-        return NULL;
-    }
-
-    map->lineDefNum = mLumpsInfo.lineDefsEntry.lumpSize / LINEDEF_SIZE_BYTES;
-    map->sideDefNum = mLumpsInfo.sideDefsEntry.lumpSize / SIDEDEF_SIZE_BYTES;
-    map->vertexNum = mLumpsInfo.verticesEntry.lumpSize / VERTEX_SIZE_BYTES;
-    map->sectorNum = mLumpsInfo.sectorsEntry.lumpSize / SECTOR_SIZE_BYTES;
-
-    map->lineDefs = malloc(sizeof(lineDef) * map->lineDefNum);
-    for (int lineNum = 0; lineNum < map->lineDefNum; lineNum++) {
-        readLineDef(wad, &map->lineDefs[lineNum], mLumpsInfo.lineDefsEntry.lumpOffs + (lineNum * 14));
-        printf("lineDef data:\n");
-        printf("v1: %u\n", map->lineDefs[lineNum].v1);
-        printf("v2: %u\n", map->lineDefs[lineNum].v2);
-        printf("frontSideNum: %u\n", map->lineDefs[lineNum].frontSideNum);
-        printf("backSideNum: %u\n\n", map->lineDefs[lineNum].backSideNum);
-    }
-
-    map->sideDefs = malloc(sizeof(sideDef) * map->sideDefNum);
-    for (int sideNum = 0; sideNum < map->sideDefNum; sideNum++) {
-        readSideDef(wad, &map->sideDefs[sideNum], mLumpsInfo.sideDefsEntry.lumpOffs + (sideNum * 30));
-        printf("sideDef data:\n");
-        printf("xTexOffset: %u\n", map->sideDefs[sideNum].xTexOffset);
-        printf("yTexOffset: %u\n", map->sideDefs[sideNum].yTexOffset);
-        printf("upperTexName:%.8s\n", map->sideDefs[sideNum].upperTexName);
-        printf("lowerTexName:%.8s\n", map->sideDefs[sideNum].lowerTexName);
-        printf("midTexName:%.8s\n", map->sideDefs[sideNum].midTexName);
-        printf("sectFacing:%u\n\n", map->sideDefs[sideNum].sectFacing);
-    }
-
-    map->vertices = malloc(sizeof(vertex) * map->sideDefNum);
-    for (int vertNum = 0; vertNum < map->vertexNum; vertNum++) {
-        readVertex(wad, &map->vertices[vertNum], mLumpsInfo.verticesEntry.lumpOffs + (vertNum * 4));
-        printf("vertex data:\n");
-        printf("x: %u\n", map->vertices[vertNum].x);
-        printf("y: %u\n\n", map->vertices[vertNum].y);
-    }
-
-    map->sectors = malloc(sizeof(sector) * map->sectorNum);
-    for (int sectNum = 0; sectNum < map->sectorNum; sectNum++) {
-        readSector(wad, &map->sectors[sectNum], mLumpsInfo.sectorsEntry.lumpOffs + (sectNum * 26));
-        printf("sector data:\n");
-        printf("floorHeight: %u\n", map->sectors[sectNum].floorHeight);
-        printf("ceilHeight: %u\n", map->sectors[sectNum].ceilHeight);
-        printf("floorTex: %.8s\n", map->sectors[sectNum].floorTex);
-        printf("ceilTex: %.8s\n", map->sectors[sectNum].ceilTex);
-        printf("brightness: %u\n\n", map->sectors[sectNum].brightness);
-    }
+    readMapGeometry(wad, map, &reqLumpEntries.targMapLumps);
 
     return map;
 }
