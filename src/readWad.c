@@ -30,6 +30,14 @@ typedef struct {
 } directoryEntry;
 
 typedef struct {
+    int lumpOffs;
+    int lumpSize;
+    char lumpName[8]; //key
+
+    UT_hash_handle hh;
+} directoryEntryHashed;
+
+typedef struct {
     directoryEntry mapMarkerEntry;
     directoryEntry lineDefsEntry;
     directoryEntry sideDefsEntry;
@@ -43,7 +51,7 @@ typedef struct {
     directoryEntry textureDefs1;
     directoryEntry textureDefs2; //texture2's existence is a pain and only really matters if you are using doom 1 as an iwad
 
-    directoryEntry* patches;
+    directoryEntryHashed* patches;
 } reqWadLumps;
 
 void readHeader(FILE* wad, header* head) {
@@ -72,10 +80,39 @@ void getTargetMapComposition(FILE* wad, mapLumps* mLumpsEntries, int* entryNum) 
 
 }
 
+void collectPatchEntries(FILE* wad, directoryEntryHashed** patchTable, int* entryNum) {
+
+    directoryEntry tempEntry;
+
+    while (fread(&tempEntry, sizeof(directoryEntry), 1, wad) == 1) {
+
+        *entryNum += 1;
+
+        if (strncmp(tempEntry.lumpName, "P_END", 5) == 0) {
+            break;
+        }
+
+        if (tempEntry.lumpSize == 0) {
+            continue;
+        }
+
+        directoryEntryHashed* newPatchEntry = malloc(sizeof(*newPatchEntry));
+
+        newPatchEntry->lumpOffs = tempEntry.lumpOffs;
+        newPatchEntry->lumpSize = tempEntry.lumpSize;
+        memcpy(newPatchEntry->lumpName, tempEntry.lumpName, 8);
+
+        HASH_ADD(hh, *patchTable, lumpName, 8, newPatchEntry);
+
+    }
+}
+
 int getRequiredLumpEntries(FILE* wad, reqWadLumps* wadLumps, const header* header, const char* targetMap) {
     fseek(wad, header->directoryOffset, 0);
 
     directoryEntry tempEntry;
+
+    wadLumps->patches = NULL;
 
     for (int entryNum = 0; entryNum < header->lumpsNum; entryNum++) {
         fread(&tempEntry, sizeof(directoryEntry), 1, wad);
@@ -88,15 +125,18 @@ int getRequiredLumpEntries(FILE* wad, reqWadLumps* wadLumps, const header* heade
             wadLumps->textureDefs2 = tempEntry;
             continue;
         }
+        if (strncmp(tempEntry.lumpName, "P_START", 7) == 0) {
+            collectPatchEntries(wad, &wadLumps->patches, &entryNum);
+            continue;
+        }
         if (strncmp(tempEntry.lumpName, "PNAMES", 6) == 0) {
             wadLumps->pnames = tempEntry;
             continue;
         }
-        if (strcmp(tempEntry.lumpName, targetMap) == 0) {
+        if (strncmp(tempEntry.lumpName, targetMap, 5) == 0) {
             getTargetMapComposition(wad, &wadLumps->targMapLumps, &entryNum);
             continue;
         }
-        printf("%.8s\n", tempEntry.lumpName);
     }
 
     return 0;
