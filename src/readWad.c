@@ -59,6 +59,11 @@ typedef struct {
     UT_hash_handle hh;
 } mapTexNameHashed;
 
+typedef struct {
+    int nameCount;
+    char (*names)[8];
+} namesTable;
+
 void readHeader(FILE* wad, header* head) {
     fread(&head->ident, sizeof(char), 4, wad);
     head->ident[4] = '\0';
@@ -257,12 +262,27 @@ void collectUsedTextures (mapTexNameHashed** usedTexTable, doomMap* map) {
     }
 }
 
+int collectPNames(FILE *wad, directoryEntry* entry, namesTable* table) {
+
+    fseek(wad, entry->lumpOffs, SEEK_SET);
+    fread(&table->nameCount, sizeof(int), 1, wad);
+
+    table->names = malloc(table->nameCount * sizeof(*table->names));
+    if (!table->names) {
+        fprintf(stderr, "Failed malloc\n");
+        return 0;
+    }
+
+    fread(table->names, sizeof *table->names, table->nameCount, wad);
+    return 1;
+}
+
 doomMap* readWadToMapData(const char* wadPath, const char* mapName) {
 
     doomMap* map = malloc(sizeof(doomMap));
 
     if (!map) {
-        fprintf(stderr, "failed malloc");
+        fprintf(stderr, "Failed malloc\n");
         return NULL;
     }
 
@@ -282,7 +302,7 @@ doomMap* readWadToMapData(const char* wadPath, const char* mapName) {
 
     reqWadLumps reqLumpEntries;
     if (!getRequiredLumpEntries(wad, &reqLumpEntries, &header, mapName)) {
-        fprintf(stderr, "Failed to locate vital wad lumps");
+        fprintf(stderr, "Failed to locate vital wad lumps\n");
         return NULL;
     }
 
@@ -293,6 +313,12 @@ doomMap* readWadToMapData(const char* wadPath, const char* mapName) {
 
     mapTexNameHashed *usedTextureTable = NULL;
     collectUsedTextures(&usedTextureTable, map);
+
+    namesTable pNamesTable;
+    if (!collectPNames(wad, &reqLumpEntries.pnames, &pNamesTable)) {
+        fprintf(stderr, "Failed to read Pnames\n");
+        return NULL;
+    }
 
     return map;
 }
