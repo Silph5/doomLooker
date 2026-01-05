@@ -188,6 +188,7 @@ void readVertex (FILE* wad, vertex* targetStruct, int offs) {
 
     fread(&targetStruct->x, sizeof(int16_t), 1, wad);
     fread(&targetStruct->y, sizeof(int16_t), 1, wad);
+    targetStruct->y *= -1; //the map model ends up mirrored without this
 }
 
 void readSector (FILE* wad, sector* targetStruct, int offs) {
@@ -292,12 +293,6 @@ doomMap* readWadToMapData(const char* wadPath, const char* mapName) {
 
     mapTexNameHashed *usedTextureTable = NULL;
     collectUsedTextures(&usedTextureTable, map);
-
-    mapTexNameHashed *cur, *tmp;
-
-    HASH_ITER(hh, usedTextureTable, cur, tmp) {
-        printf("%.8s\n", cur->name);
-    }
 
     return map;
 }
