@@ -114,32 +114,45 @@ int getRequiredLumpEntries(FILE* wad, reqWadLumps* wadLumps, const header* heade
 
     wadLumps->patches = NULL;
 
+    bool foundTex = false;
+    bool foundPatches = false;
+    bool foundPNames = false;
+    bool foundMap = false;
+
     for (int entryNum = 0; entryNum < header->lumpsNum; entryNum++) {
         fread(&tempEntry, sizeof(directoryEntry), 1, wad);
 
         if (strncmp(tempEntry.lumpName, "TEXTURE1", 8) == 0) {
             wadLumps->textureDefs1 = tempEntry;
+            foundTex = true;
             continue;
         }
         if (strncmp(tempEntry.lumpName, "TEXTURE2", 8) == 0) {
             wadLumps->textureDefs2 = tempEntry;
+            foundTex = true;
             continue;
         }
         if (strncmp(tempEntry.lumpName, "P_START", 7) == 0) {
             collectPatchEntries(wad, &wadLumps->patches, &entryNum);
+            foundPatches = true;
             continue;
         }
         if (strncmp(tempEntry.lumpName, "PNAMES", 6) == 0) {
             wadLumps->pnames = tempEntry;
+            foundPNames = true;
             continue;
         }
         if (strncmp(tempEntry.lumpName, targetMap, 5) == 0) {
             getTargetMapComposition(wad, &wadLumps->targMapLumps, &entryNum);
+            foundMap = true;
             continue;
         }
     }
 
-    return 0;
+    if (!(foundTex && foundPatches && foundPNames && foundMap)) {
+        return 0;
+    }
+    return 1;
 }
 
 void readLineDef (FILE* wad, lineDef* targetStruct, int offs) {
@@ -182,7 +195,7 @@ void readSector (FILE* wad, sector* targetStruct, int offs) {
     fread(&targetStruct->brightness, sizeof(int16_t), 1, wad);
 }
 
-void readMapGeometry (FILE* wad, doomMap* map, mapLumps* mLumpsInfo) {
+int readMapGeometry (FILE* wad, doomMap* map, mapLumps* mLumpsInfo) {
 
     map->lineDefNum = mLumpsInfo->lineDefsEntry.lumpSize / LINEDEF_SIZE_BYTES;
     map->sideDefNum = mLumpsInfo->sideDefsEntry.lumpSize / SIDEDEF_SIZE_BYTES;
@@ -190,25 +203,30 @@ void readMapGeometry (FILE* wad, doomMap* map, mapLumps* mLumpsInfo) {
     map->sectorNum = mLumpsInfo->sectorsEntry.lumpSize / SECTOR_SIZE_BYTES;
 
     map->lineDefs = malloc(sizeof(lineDef) * map->lineDefNum);
+    if (map->lineDefs == NULL) {fprintf(stderr, "Failed to allocate memory for linedefs"); return 0;}
     for (int lineNum = 0; lineNum < map->lineDefNum; lineNum++) {
         readLineDef(wad, &map->lineDefs[lineNum], mLumpsInfo->lineDefsEntry.lumpOffs + (lineNum * 14));
     }
 
     map->sideDefs = malloc(sizeof(sideDef) * map->sideDefNum);
+    if (map->sideDefs == NULL) {fprintf(stderr, "Failed to allocate memory for sidedefs"); return 0;}
     for (int sideNum = 0; sideNum < map->sideDefNum; sideNum++) {
         readSideDef(wad, &map->sideDefs[sideNum], mLumpsInfo->sideDefsEntry.lumpOffs + (sideNum * 30));
     }
 
     map->vertices = malloc(sizeof(vertex) * map->sideDefNum);
+    if (map->vertices == NULL) {fprintf(stderr, "Failed to allocate memory for vertices"); return 0;}
     for (int vertNum = 0; vertNum < map->vertexNum; vertNum++) {
         readVertex(wad, &map->vertices[vertNum], mLumpsInfo->verticesEntry.lumpOffs + (vertNum * 4));
     }
 
     map->sectors = malloc(sizeof(sector) * map->sectorNum);
+    if (map->sectors == NULL) {fprintf(stderr, "Failed to allocate memory for sectors"); return 0;}
     for (int sectNum = 0; sectNum < map->sectorNum; sectNum++) {
         readSector(wad, &map->sectors[sectNum], mLumpsInfo->sectorsEntry.lumpOffs + (sectNum * 26));
     }
 
+    return 1;
 }
 
 doomMap* readWadToMapData(const char* wadPath, const char* mapName) {
@@ -235,9 +253,15 @@ doomMap* readWadToMapData(const char* wadPath, const char* mapName) {
     }
 
     reqWadLumps reqLumpEntries;
-    getRequiredLumpEntries(wad, &reqLumpEntries, &header, mapName);
+    if (!getRequiredLumpEntries(wad, &reqLumpEntries, &header, mapName)) {
+        fprintf(stderr, "Failed to locate vital wad lumps");
+        return NULL;
+    }
 
-    readMapGeometry(wad, map, &reqLumpEntries.targMapLumps);
+    if (!readMapGeometry(wad, map, &reqLumpEntries.targMapLumps)) {
+        fprintf(stderr, "Failed to read map geometry\n");
+        return NULL;
+    }
 
     return map;
 }
