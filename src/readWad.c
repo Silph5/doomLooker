@@ -54,6 +54,11 @@ typedef struct {
     directoryEntryHashed* patches;
 } reqWadLumps;
 
+typedef struct {
+    char name[8];
+    UT_hash_handle hh;
+} mapTexNameHashed;
+
 void readHeader(FILE* wad, header* head) {
     fread(&head->ident, sizeof(char), 4, wad);
     head->ident[4] = '\0';
@@ -229,6 +234,28 @@ int readMapGeometry (FILE* wad, doomMap* map, mapLumps* mLumpsInfo) {
     return 1;
 }
 
+void addUsedTexture(mapTexNameHashed** usedTexTable, const char* texName) {
+    mapTexNameHashed *entry;
+
+    HASH_FIND(hh, *usedTexTable, texName, 8, entry);
+
+    if (entry == NULL) {
+        entry = malloc(sizeof(*entry));
+        memcpy(entry->name, texName, 8);
+
+        HASH_ADD(hh, *usedTexTable, name, 8, entry);
+    }
+}
+
+void collectUsedTextures (mapTexNameHashed** usedTexTable, doomMap* map) {
+
+    for (int sideNum = 0; sideNum < map->sideDefNum; sideNum++) {
+        addUsedTexture(usedTexTable, map->sideDefs[sideNum].lowerTexName);
+        addUsedTexture(usedTexTable, map->sideDefs[sideNum].midTexName);
+        addUsedTexture(usedTexTable, map->sideDefs[sideNum].upperTexName);
+    }
+}
+
 doomMap* readWadToMapData(const char* wadPath, const char* mapName) {
 
     doomMap* map = malloc(sizeof(doomMap));
@@ -261,6 +288,15 @@ doomMap* readWadToMapData(const char* wadPath, const char* mapName) {
     if (!readMapGeometry(wad, map, &reqLumpEntries.targMapLumps)) {
         fprintf(stderr, "Failed to read map geometry\n");
         return NULL;
+    }
+
+    mapTexNameHashed *usedTextureTable = NULL;
+    collectUsedTextures(&usedTextureTable, map);
+
+    mapTexNameHashed *cur, *tmp;
+
+    HASH_ITER(hh, usedTextureTable, cur, tmp) {
+        printf("%.8s\n", cur->name);
     }
 
     return map;
