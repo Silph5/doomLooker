@@ -10,16 +10,19 @@ typedef struct lineDef lineDef;
 typedef struct sideDef sideDef;
 typedef struct vertex vertex;
 typedef struct sector sector;
+typedef struct texture texture;
 
 typedef struct {
     lineDef* lineDefs;
     sideDef* sideDefs;
     vertex* vertices;
     sector* sectors;
+    texture* textures;
     int lineDefNum;
     int sideDefNum;
     int vertexNum;
     int sectorNum;
+    int textureNum;
 } doomMap;
 
 #endif //DOOMLOOKER_LEVEL_H

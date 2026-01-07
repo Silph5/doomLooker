@@ -35,4 +35,11 @@ typedef struct sector {
     int16_t brightness;
 } sector;
 
+typedef struct texture {
+    char name[8];
+    int16_t width;
+    int16_t height;
+    int8_t* pixels;
+} texture;
+
 #endif //DOOMLOOKER_MAPCOMPONENTSTRUCTS_H

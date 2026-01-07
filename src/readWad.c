@@ -50,12 +50,15 @@ typedef struct {
     directoryEntry pnames;
     directoryEntry textureDefs1;
     directoryEntry textureDefs2; //texture2's existence is a pain and only really matters if you are using doom 1 as an iwad
+    directoryEntry playPal;
 
     directoryEntryHashed* patches;
 } reqWadLumps;
 
 typedef struct {
     char name[8];
+    int textureIndex;
+
     UT_hash_handle hh;
 } mapTexNameHashed;
 
@@ -63,6 +66,10 @@ typedef struct {
     int nameCount;
     char (*names)[8];
 } namesTable;
+
+typedef struct {
+    uint8_t r, g, b;
+} doomCol;
 
 void readHeader(FILE* wad, header* head) {
     fread(&head->ident, sizeof(char), 4, wad);
@@ -128,10 +135,19 @@ int getRequiredLumpEntries(FILE* wad, reqWadLumps* wadLumps, const header* heade
     bool foundPatches = false;
     bool foundPNames = false;
     bool foundMap = false;
+    bool foundPlayPal = false;
+
+    wadLumps->textureDefs1.lumpSize = 0;
+    wadLumps->textureDefs2.lumpSize = 0;
 
     for (int entryNum = 0; entryNum < header->lumpsNum; entryNum++) {
         fread(&tempEntry, sizeof(directoryEntry), 1, wad);
 
+        if (strncmp(tempEntry.lumpName, "PLAYPAL", 7) == 0) {
+            wadLumps->playPal = tempEntry;
+            foundPlayPal = true;
+            continue;
+        }
         if (strncmp(tempEntry.lumpName, "TEXTURE1", 8) == 0) {
             wadLumps->textureDefs1 = tempEntry;
             foundTex = true;
@@ -139,7 +155,6 @@ int getRequiredLumpEntries(FILE* wad, reqWadLumps* wadLumps, const header* heade
         }
         if (strncmp(tempEntry.lumpName, "TEXTURE2", 8) == 0) {
             wadLumps->textureDefs2 = tempEntry;
-            foundTex = true;
             continue;
         }
         if (strncmp(tempEntry.lumpName, "P_START", 7) == 0) {
@@ -155,11 +170,10 @@ int getRequiredLumpEntries(FILE* wad, reqWadLumps* wadLumps, const header* heade
         if (strncmp(tempEntry.lumpName, targetMap, 5) == 0) {
             getTargetMapComposition(wad, &wadLumps->targMapLumps, &entryNum);
             foundMap = true;
-            continue;
         }
     }
 
-    if (!(foundTex && foundPatches && foundPNames && foundMap)) {
+    if (!(foundTex && foundPatches && foundPNames && foundMap && foundPlayPal)) {
         return 0;
     }
     return 1;
@@ -241,13 +255,17 @@ int readMapGeometry (FILE* wad, doomMap* map, mapLumps* mLumpsInfo) {
 }
 
 void addUsedTexture(mapTexNameHashed** usedTexTable, const char* texName) {
-    mapTexNameHashed *entry;
 
+    if (texName[0] == '-' || texName[0] == '\0')
+        return;
+
+    mapTexNameHashed *entry;
     HASH_FIND(hh, *usedTexTable, texName, 8, entry);
 
     if (entry == NULL) {
         entry = malloc(sizeof(*entry));
         memcpy(entry->name, texName, 8);
+        entry->textureIndex = -1;
 
         HASH_ADD(hh, *usedTexTable, name, 8, entry);
     }
@@ -262,7 +280,16 @@ void collectUsedTextures (mapTexNameHashed** usedTexTable, doomMap* map) {
     }
 }
 
-int collectPNames(FILE *wad, directoryEntry* entry, namesTable* table) {
+void getColourPalette (FILE* wad, directoryEntry* entry, doomCol* palette) {
+
+    //i'm only reading the first palette from playPal, i'll try to emulate doom's shading via GLSL
+    fseek(wad, entry->lumpOffs, SEEK_SET);
+    for (int col = 0; col < 256; col++) {
+        fread(&palette[col], sizeof(doomCol), 1, wad);
+    }
+}
+
+int collectPNames(FILE *wad, const directoryEntry* entry, namesTable* table) {
 
     fseek(wad, entry->lumpOffs, SEEK_SET);
     fread(&table->nameCount, sizeof(int), 1, wad);
@@ -276,6 +303,100 @@ int collectPNames(FILE *wad, directoryEntry* entry, namesTable* table) {
     fread(table->names, sizeof *table->names, table->nameCount, wad);
     return 1;
 }
+
+void compositeTexture(FILE *wad, texture* outTex, int offset, directoryEntryHashed* patches, namesTable* patchTable) {
+
+    fseek(wad, offset, SEEK_SET);
+
+    fread(&outTex->name, sizeof(char), 8, wad);
+
+    fseek(wad, 4, SEEK_CUR);
+
+    fread(&outTex->width, sizeof(int16_t), 1, wad);
+    fread(&outTex->height, sizeof(int16_t), 1, wad);
+    outTex->pixels = malloc(sizeof(doomCol) * outTex->width * outTex->height);
+    if (!outTex->pixels) {
+        fprintf(stderr, "failed to malloc for texture %.8s", outTex->name);
+    }
+
+    fseek(wad, 4, SEEK_CUR);
+
+    int16_t patchCount;
+
+    fread(&patchCount, sizeof(int16_t), 1, wad);
+
+    int patchStartOffs = offset + 22;
+
+    for (int p = 0; p < patchCount; p++) {
+        fseek(wad, patchStartOffs + (10 * p), SEEK_SET);
+
+        int16_t xStart, yStart, patchId;
+
+        fread(&xStart, sizeof(int16_t), 1, wad);
+        fread(&yStart, sizeof(int16_t), 1, wad);
+        fread(&patchId, sizeof(int16_t), 1, wad);
+
+        char patchName[8];
+        memcpy(patchName, patchTable->names[patchId], 8);
+
+        directoryEntryHashed* patchEntry = NULL;
+
+        HASH_FIND(hh, patches, patchName, 8, patchEntry);
+        if (patchEntry) {
+            //add actual pixel data. Will do this later because this whole texture compositing system has caused me too much pain
+        }
+
+    }
+}
+
+texture* compositeRequiredTextures(FILE *wad, const directoryEntry* texture1Entry, directoryEntry* texture2Entry, directoryEntryHashed* patches, namesTable* patchTable, mapTexNameHashed* usedTextureTable, int* outTexCount) {
+
+    //texture1
+    int totalTexNum;
+    fseek(wad, texture1Entry->lumpOffs, SEEK_SET);
+
+    int usedTexCount = 0;
+
+    mapTexNameHashed *tex, *tmp;
+    HASH_ITER(hh, usedTextureTable, tex, tmp) {
+        usedTexCount++;
+    }
+
+    fread(&totalTexNum, sizeof(int), 1, wad);
+
+    texture* textures = malloc(sizeof(texture) * usedTexCount);
+
+    int* textureOffsets = malloc(sizeof(int) * totalTexNum);
+
+    for (int t = 0; t < totalTexNum; t++) {
+        fread(&textureOffsets[t], sizeof(int), 1, wad);
+    }
+
+    int usedTexNum = 0;
+    for (int t = 0; t < totalTexNum; t++) {
+        char nextTexName[8];
+        mapTexNameHashed *texEntry = NULL;
+
+        fseek(wad, texture1Entry->lumpOffs + textureOffsets[t], SEEK_SET);
+        fread(nextTexName, sizeof(char), 8, wad);
+
+        HASH_FIND(hh, usedTextureTable, nextTexName, 8, texEntry);
+        if (texEntry && texEntry->textureIndex == -1) {
+
+            texEntry->textureIndex = usedTexNum;
+            compositeTexture(wad, &textures[usedTexNum], texture1Entry->lumpOffs + textureOffsets[t], patches, patchTable);
+
+            usedTexNum++;
+        }
+
+    }
+
+    *outTexCount = usedTexNum;
+
+    free(textureOffsets);
+    return textures;
+}
+
 
 doomMap* readWadToMapData(const char* wadPath, const char* mapName) {
 
@@ -314,10 +435,23 @@ doomMap* readWadToMapData(const char* wadPath, const char* mapName) {
     mapTexNameHashed *usedTextureTable = NULL;
     collectUsedTextures(&usedTextureTable, map);
 
+    doomCol* colPalette = malloc(sizeof(doomCol) * 256);
+    if (!colPalette) {
+        fprintf(stderr, "Failed to allocate memory for colour palette");
+        return NULL;
+    }
+    getColourPalette(wad, &reqLumpEntries.playPal, colPalette);
+
     namesTable pNamesTable;
     if (!collectPNames(wad, &reqLumpEntries.pnames, &pNamesTable)) {
-        fprintf(stderr, "Failed to read Pnames\n");
+        fprintf(stderr, "Failed to read Pnames lump\n");
         return NULL;
+    }
+
+    texture* textures = compositeRequiredTextures(wad, &reqLumpEntries.textureDefs1, &reqLumpEntries.textureDefs2, reqLumpEntries.patches, &pNamesTable, usedTextureTable, &map->textureNum);
+
+    for (int t = 0; t < map->textureNum; t++) {
+        printf("Used texture name: %.8s, width: %i, height: %i, num: %i\n", textures[t].name, textures[t].width, textures[t].height, t);
     }
 
     return map;
