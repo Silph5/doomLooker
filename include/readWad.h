@@ -8,4 +8,6 @@
 
 doomMap* readWadToMapData(const char* wadPath, char* mapName);
 
+void freeDoomMapData(doomMap* map);
+
 #endif //DOOMLOOKER_READWAD_H

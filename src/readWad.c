@@ -456,3 +456,13 @@ doomMap* readWadToMapData(const char* wadPath, const char* mapName) {
 
     return map;
 }
+
+void freeDoomMapData(doomMap* map) {
+    free(map->lineDefs);
+    free(map->sectors);
+    free(map->sideDefs);
+    free(map->vertices);
+    //free(map->textures);
+
+    free(map);
+}

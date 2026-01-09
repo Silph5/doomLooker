@@ -48,6 +48,8 @@ int main(const int argc, char* argv[]) {
         return -1;
     }
 
+    freeDoomMapData(mapData);
+
     if (!startGame(model)) {
         printf("An error occured and the program had to exit");
         return -1;
