@@ -45,13 +45,15 @@ typedef struct {
     directoryEntry sectorsEntry;
 } mapLumps;
 
+#define MAX_TEXTUREX_EXPECTED 4
+
 typedef struct {
     mapLumps targMapLumps;
     directoryEntry pnames;
-    directoryEntry textureDefs1;
-    directoryEntry textureDefs2; //texture2's existence is a pain and only really matters if you are using doom 1 as an iwad
-    directoryEntry playPal;
+    directoryEntry* textureDefs; //textureX
+    int textureDefCount;
 
+    directoryEntry playPal;
     directoryEntryHashed* patches;
 } reqWadLumps;
 
@@ -131,14 +133,18 @@ int getRequiredLumpEntries(FILE* wad, reqWadLumps* wadLumps, const header* heade
 
     wadLumps->patches = NULL;
 
+    wadLumps->textureDefCount = 0;
+    wadLumps->textureDefs = malloc(sizeof(directoryEntry) * MAX_TEXTUREX_EXPECTED);
+    if (!wadLumps->textureDefs) {
+        fprintf(stderr, "failed to malloc for textureX lumps");
+        return 0;
+    }
+
     bool foundTex = false;
     bool foundPatches = false;
     bool foundPNames = false;
     bool foundMap = false;
     bool foundPlayPal = false;
-
-    wadLumps->textureDefs1.lumpSize = 0;
-    wadLumps->textureDefs2.lumpSize = 0;
 
     for (int entryNum = 0; entryNum < header->lumpsNum; entryNum++) {
         fread(&tempEntry, sizeof(directoryEntry), 1, wad);
@@ -148,15 +154,13 @@ int getRequiredLumpEntries(FILE* wad, reqWadLumps* wadLumps, const header* heade
             foundPlayPal = true;
             continue;
         }
-        if (strncmp(tempEntry.lumpName, "TEXTURE1", 8) == 0) {
-            wadLumps->textureDefs1 = tempEntry;
+        if (strncmp(tempEntry.lumpName, "TEXTURE1", 8) == 0 || strncmp(tempEntry.lumpName, "TEXTURE2", 8) == 0) {
+            wadLumps->textureDefs[wadLumps->textureDefCount] = tempEntry;
+            wadLumps->textureDefCount += 1;
             foundTex = true;
             continue;
         }
-        if (strncmp(tempEntry.lumpName, "TEXTURE2", 8) == 0) {
-            wadLumps->textureDefs2 = tempEntry;
-            continue;
-        }
+
         if (strncmp(tempEntry.lumpName, "P_START", 7) == 0) {
             collectPatchEntries(wad, &wadLumps->patches, &entryNum);
             foundPatches = true;
@@ -349,11 +353,11 @@ void compositeTexture(FILE *wad, texture* outTex, int offset, directoryEntryHash
     }
 }
 
-texture* compositeRequiredTextures(FILE *wad, const directoryEntry* texture1Entry, directoryEntry* texture2Entry, directoryEntryHashed* patches, namesTable* patchTable, mapTexNameHashed* usedTextureTable, int* outTexCount) {
+texture* compositeRequiredTextures(FILE *wad, directoryEntry* textureDefEntry, directoryEntryHashed* patches, namesTable* patchTable, mapTexNameHashed* usedTextureTable, int* outTexCount) {
 
     //texture1
     int totalTexNum;
-    fseek(wad, texture1Entry->lumpOffs, SEEK_SET);
+    fseek(wad, textureDefEntry->lumpOffs, SEEK_SET); //use file stream
 
     int usedTexCount = 0;
 
@@ -377,14 +381,14 @@ texture* compositeRequiredTextures(FILE *wad, const directoryEntry* texture1Entr
         char nextTexName[8];
         mapTexNameHashed *texEntry = NULL;
 
-        fseek(wad, texture1Entry->lumpOffs + textureOffsets[t], SEEK_SET);
+        fseek(wad, textureDefEntry->lumpOffs + textureOffsets[t], SEEK_SET);
         fread(nextTexName, sizeof(char), 8, wad);
 
         HASH_FIND(hh, usedTextureTable, nextTexName, 8, texEntry);
         if (texEntry && texEntry->textureIndex == -1) {
 
             texEntry->textureIndex = usedTexNum;
-            compositeTexture(wad, &textures[usedTexNum], texture1Entry->lumpOffs + textureOffsets[t], patches, patchTable);
+            compositeTexture(wad, &textures[usedTexNum], textureDefEntry->lumpOffs + textureOffsets[t], patches, patchTable);
 
             usedTexNum++;
         }
@@ -448,7 +452,8 @@ doomMap* readWadToMapData(const char* wadPath, const char* mapName) {
         return NULL;
     }
 
-    texture* textures = compositeRequiredTextures(wad, &reqLumpEntries.textureDefs1, &reqLumpEntries.textureDefs2, reqLumpEntries.patches, &pNamesTable, usedTextureTable, &map->textureNum);
+    //change this
+    texture* textures = compositeRequiredTextures(wad, &reqLumpEntries.textureDefs[0], reqLumpEntries.patches, &pNamesTable, usedTextureTable, &map->textureNum);
 
     for (int t = 0; t < map->textureNum; t++) {
         printf("Used texture name: %.8s, width: %i, height: %i, num: %i\n", textures[t].name, textures[t].width, textures[t].height, t);
