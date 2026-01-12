@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
 
 #include "ut_hash/uthash.h"
 #include "mapStruct.h"
@@ -258,29 +259,44 @@ int readMapGeometry (FILE* wad, doomMap* map, mapLumps* mLumpsInfo) {
     return 1;
 }
 
-void addUsedTexture(mapTexNameHashed** usedTexTable, const char* texName) {
+void normaliseTexName(char* name) {
+    for (int c = 0; c < 8; c++ /*heh*/) {
+        if (name[c] == '\0') {
+            break;
+        }
+        name[c] = toupper((unsigned char)name[c]);
+    }
+}
+
+void addUsedTexture(mapTexNameHashed** usedTexTable, const char* texName, int* outCount) {
 
     if (texName[0] == '-' || texName[0] == '\0')
         return;
 
+    char normTexName[8];
+
+    memcpy(normTexName, texName, 8);
+    normaliseTexName(normTexName);
+
     mapTexNameHashed *entry;
-    HASH_FIND(hh, *usedTexTable, texName, 8, entry);
+    HASH_FIND(hh, *usedTexTable, normTexName, 8, entry);
 
     if (entry == NULL) {
         entry = malloc(sizeof(*entry));
-        memcpy(entry->name, texName, 8);
+        memcpy(entry->name, normTexName, 8);
         entry->textureIndex = -1;
 
         HASH_ADD(hh, *usedTexTable, name, 8, entry);
+        *outCount += 1;
     }
 }
 
-void collectUsedTextures (mapTexNameHashed** usedTexTable, doomMap* map) {
+void collectUsedTextures (mapTexNameHashed** usedTexTable, doomMap* map, int* outCount) {
 
     for (int sideNum = 0; sideNum < map->sideDefNum; sideNum++) {
-        addUsedTexture(usedTexTable, map->sideDefs[sideNum].lowerTexName);
-        addUsedTexture(usedTexTable, map->sideDefs[sideNum].midTexName);
-        addUsedTexture(usedTexTable, map->sideDefs[sideNum].upperTexName);
+        addUsedTexture(usedTexTable, map->sideDefs[sideNum].lowerTexName, outCount);
+        addUsedTexture(usedTexTable, map->sideDefs[sideNum].midTexName, outCount);
+        addUsedTexture(usedTexTable, map->sideDefs[sideNum].upperTexName, outCount);
     }
 }
 
@@ -320,8 +336,11 @@ void compositeTexture(FILE *wad, texture* outTex, int offset, directoryEntryHash
     fread(&outTex->height, sizeof(int16_t), 1, wad);
     outTex->pixels = malloc(sizeof(doomCol) * outTex->width * outTex->height);
     if (!outTex->pixels) {
-        fprintf(stderr, "failed to malloc for texture %.8s", outTex->name);
+        fprintf(stderr, "failed to malloc for texture %.8s pixel data", outTex->name);
+        return;
     }
+    printf("composited texture name: %.8s\n", outTex->name);
+
 
     fseek(wad, 4, SEEK_CUR);
 
@@ -353,31 +372,21 @@ void compositeTexture(FILE *wad, texture* outTex, int offset, directoryEntryHash
     }
 }
 
-texture* compositeRequiredTextures(FILE *wad, directoryEntry* textureDefEntry, directoryEntryHashed* patches, namesTable* patchTable, mapTexNameHashed* usedTextureTable, int* outTexCount) {
+void readTextureDefAndCompositeUsed(FILE *wad, texture* textures, directoryEntry* textureDefEntry, directoryEntryHashed* patches, namesTable* patchTable, mapTexNameHashed* usedTextureTable, int* compTexCount) {
 
     //texture1
-    int totalTexNum;
+    int textureDefTexCount;
     fseek(wad, textureDefEntry->lumpOffs, SEEK_SET); //use file stream
 
-    int usedTexCount = 0;
+    fread(&textureDefTexCount, sizeof(int), 1, wad);
 
-    mapTexNameHashed *tex, *tmp;
-    HASH_ITER(hh, usedTextureTable, tex, tmp) {
-        usedTexCount++;
-    }
+    int* textureOffsets = malloc(sizeof(int) * textureDefTexCount);
 
-    fread(&totalTexNum, sizeof(int), 1, wad);
-
-    texture* textures = malloc(sizeof(texture) * usedTexCount);
-
-    int* textureOffsets = malloc(sizeof(int) * totalTexNum);
-
-    for (int t = 0; t < totalTexNum; t++) {
+    for (int t = 0; t < textureDefTexCount; t++) {
         fread(&textureOffsets[t], sizeof(int), 1, wad);
     }
 
-    int usedTexNum = 0;
-    for (int t = 0; t < totalTexNum; t++) {
+    for (int t = 0; t < textureDefTexCount; t++) {
         char nextTexName[8];
         mapTexNameHashed *texEntry = NULL;
 
@@ -387,18 +396,16 @@ texture* compositeRequiredTextures(FILE *wad, directoryEntry* textureDefEntry, d
         HASH_FIND(hh, usedTextureTable, nextTexName, 8, texEntry);
         if (texEntry && texEntry->textureIndex == -1) {
 
-            texEntry->textureIndex = usedTexNum;
-            compositeTexture(wad, &textures[usedTexNum], textureDefEntry->lumpOffs + textureOffsets[t], patches, patchTable);
+            texEntry->textureIndex = *compTexCount;
+            compositeTexture(wad, &textures[*compTexCount], textureDefEntry->lumpOffs + textureOffsets[t], patches, patchTable);
 
-            usedTexNum++;
+            *compTexCount += 1;
+
         }
 
     }
 
-    *outTexCount = usedTexNum;
-
     free(textureOffsets);
-    return textures;
 }
 
 
@@ -436,12 +443,9 @@ doomMap* readWadToMapData(const char* wadPath, const char* mapName) {
         return NULL;
     }
 
-    mapTexNameHashed *usedTextureTable = NULL;
-    collectUsedTextures(&usedTextureTable, map);
-
     doomCol* colPalette = malloc(sizeof(doomCol) * 256);
     if (!colPalette) {
-        fprintf(stderr, "Failed to allocate memory for colour palette");
+        fprintf(stderr, "Failed to allocate memory for colour palette\n");
         return NULL;
     }
     getColourPalette(wad, &reqLumpEntries.playPal, colPalette);
@@ -452,12 +456,31 @@ doomMap* readWadToMapData(const char* wadPath, const char* mapName) {
         return NULL;
     }
 
-    //change this
-    texture* textures = compositeRequiredTextures(wad, &reqLumpEntries.textureDefs[0], reqLumpEntries.patches, &pNamesTable, usedTextureTable, &map->textureNum);
+    int usedTexCount = 0;
 
-    for (int t = 0; t < map->textureNum; t++) {
-        printf("Used texture name: %.8s, width: %i, height: %i, num: %i\n", textures[t].name, textures[t].width, textures[t].height, t);
+    mapTexNameHashed *usedTextures = NULL;
+    collectUsedTextures(&usedTextures, map, &usedTexCount);
+
+    mapTexNameHashed *current, *tmp;
+
+    HASH_ITER(hh, usedTextures, current, tmp) {
+        printf("Used texture name: %.8s\n", current->name);
     }
+
+    map->textures = malloc(sizeof(texture) * usedTexCount);
+    if (!map->textures) {
+        fprintf(stderr, "Failed to allocate memory for textures");
+        return NULL;
+    }
+
+    int compositedTexCount = 0;
+    for (int t = 0; t < reqLumpEntries.textureDefCount; t++) {
+        readTextureDefAndCompositeUsed(wad, map->textures, &reqLumpEntries.textureDefs[t], reqLumpEntries.patches, &pNamesTable, usedTextures, &compositedTexCount);
+    }
+    map->textureNum = compositedTexCount;
+
+    texture* temp = realloc(map->textures,sizeof(texture) * map->textureNum);
+    if (temp) {map->textures = temp;} //this realloc is really unnecessary but it just feels right
 
     return map;
 }
@@ -467,7 +490,7 @@ void freeDoomMapData(doomMap* map) {
     free(map->sectors);
     free(map->sideDefs);
     free(map->vertices);
-    //free(map->textures);
+    free(map->textures);
 
     free(map);
 }
