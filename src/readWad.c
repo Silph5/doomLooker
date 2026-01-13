@@ -324,7 +324,7 @@ int collectPNames(FILE *wad, const directoryEntry* entry, namesTable* table) {
     return 1;
 }
 
-void compositeTexture(FILE *wad, texture* outTex, int offset, directoryEntryHashed* patches, namesTable* patchTable) {
+void compositeTexture(FILE *wad, texture* outTex, int offset, directoryEntryHashed* patches, namesTable* patchTable, doomCol* palette) {
 
     fseek(wad, offset, SEEK_SET);
 
@@ -339,8 +339,6 @@ void compositeTexture(FILE *wad, texture* outTex, int offset, directoryEntryHash
         fprintf(stderr, "failed to malloc for texture %.8s pixel data", outTex->name);
         return;
     }
-    printf("composited texture name: %.8s\n", outTex->name);
-
 
     fseek(wad, 4, SEEK_CUR);
 
@@ -372,7 +370,7 @@ void compositeTexture(FILE *wad, texture* outTex, int offset, directoryEntryHash
     }
 }
 
-void readTextureDefAndCompositeUsed(FILE *wad, texture* textures, directoryEntry* textureDefEntry, directoryEntryHashed* patches, namesTable* patchTable, mapTexNameHashed* usedTextureTable, int* compTexCount) {
+void readTextureDefAndCompositeUsed(FILE *wad, texture* textures, directoryEntry* textureDefEntry, directoryEntryHashed* patches, namesTable* patchTable, mapTexNameHashed* usedTextureTable, doomCol* palette, int* compTexCount) {
 
     //texture1
     int textureDefTexCount;
@@ -397,7 +395,7 @@ void readTextureDefAndCompositeUsed(FILE *wad, texture* textures, directoryEntry
         if (texEntry && texEntry->textureIndex == -1) {
 
             texEntry->textureIndex = *compTexCount;
-            compositeTexture(wad, &textures[*compTexCount], textureDefEntry->lumpOffs + textureOffsets[t], patches, patchTable);
+            compositeTexture(wad, &textures[*compTexCount], textureDefEntry->lumpOffs + textureOffsets[t], patches, patchTable, palette);
 
             *compTexCount += 1;
 
@@ -461,12 +459,6 @@ doomMap* readWadToMapData(const char* wadPath, const char* mapName) {
     mapTexNameHashed *usedTextures = NULL;
     collectUsedTextures(&usedTextures, map, &usedTexCount);
 
-    mapTexNameHashed *current, *tmp;
-
-    HASH_ITER(hh, usedTextures, current, tmp) {
-        printf("Used texture name: %.8s\n", current->name);
-    }
-
     map->textures = malloc(sizeof(texture) * usedTexCount);
     if (!map->textures) {
         fprintf(stderr, "Failed to allocate memory for textures");
@@ -475,12 +467,25 @@ doomMap* readWadToMapData(const char* wadPath, const char* mapName) {
 
     int compositedTexCount = 0;
     for (int t = 0; t < reqLumpEntries.textureDefCount; t++) {
-        readTextureDefAndCompositeUsed(wad, map->textures, &reqLumpEntries.textureDefs[t], reqLumpEntries.patches, &pNamesTable, usedTextures, &compositedTexCount);
+        readTextureDefAndCompositeUsed(wad, map->textures, &reqLumpEntries.textureDefs[t], reqLumpEntries.patches, &pNamesTable, usedTextures, colPalette, &compositedTexCount);
     }
     map->textureNum = compositedTexCount;
 
     texture* temp = realloc(map->textures,sizeof(texture) * map->textureNum);
     if (temp) {map->textures = temp;} //this realloc is really unnecessary but it just feels right
+
+    //cleanup
+    free(colPalette);
+    free(reqLumpEntries.patches);
+    free(reqLumpEntries.textureDefs);
+
+    mapTexNameHashed *cur, *tmp;
+    HASH_ITER(hh, usedTextures, cur, tmp) {
+        HASH_DEL(usedTextures, cur);
+        free(cur);
+    }
+
+    fclose(wad);
 
     return map;
 }
