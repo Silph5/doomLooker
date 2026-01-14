@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#include <windows.h>
 
 #include "ut_hash/uthash.h"
 #include "mapStruct.h"
@@ -324,6 +325,61 @@ int collectPNames(FILE *wad, const directoryEntry* entry, namesTable* table) {
     return 1;
 }
 
+void insertPatchToTexture(FILE* wad, directoryEntryHashed* patchEntry, texture* tex, int16_t yStart, int16_t xStart, doomCol* palette) {
+
+    fseek(wad, patchEntry->lumpOffs, SEEK_SET);
+
+    uint16_t pWidth; uint16_t pHeight;
+
+    fread(&pWidth, sizeof(uint16_t), 1, wad);
+    fread(&pHeight, sizeof(uint16_t), 1, wad);
+
+    fseek(wad, 4, SEEK_CUR);
+
+    uint32_t* columnOffs = malloc(pWidth*sizeof(uint32_t));
+    if (!columnOffs) {
+        return;
+    }
+
+    fread(columnOffs, sizeof(uint32_t), pWidth, wad);
+
+    for (int pX = 0; pX < pWidth; pX++) {
+        fseek(wad, patchEntry->lumpOffs + columnOffs[pX], SEEK_SET);
+
+        uint8_t topDelta = 0; uint8_t len;
+
+        while (topDelta != 0xFF) {
+            fread(&topDelta, sizeof(uint8_t), 1, wad);
+            if (topDelta == 0xFF) {
+                break;
+            }
+
+            fread(&len, sizeof(uint8_t), 1, wad);
+            fseek(wad, 1, SEEK_CUR); //padding byte
+
+            for (int p = 0; p < len; p++) {
+                uint8_t palIndex;
+                fread(&palIndex, sizeof(uint8_t), 1, wad);
+
+                int tX = xStart + pX;
+                int tY = yStart + topDelta + p;
+
+                doomCol curCol = palette[palIndex];
+
+                uint32_t packedCol = 0xFF << 24 | curCol.r << 16 | curCol.g << 8 | curCol.b;
+
+                if (tX >= 0 && tX < tex->width && tY >= 0 && tY < tex->height) {
+                    tex->pixels[tY * tex->width + tX] = packedCol;
+                }
+            }
+
+            fseek(wad, 1, SEEK_CUR); //padding byte
+        }
+    }
+
+    free(columnOffs);
+}
+
 void compositeTexture(FILE *wad, texture* outTex, int offset, directoryEntryHashed* patches, namesTable* patchTable, doomCol* palette) {
 
     fseek(wad, offset, SEEK_SET);
@@ -334,7 +390,7 @@ void compositeTexture(FILE *wad, texture* outTex, int offset, directoryEntryHash
 
     fread(&outTex->width, sizeof(int16_t), 1, wad);
     fread(&outTex->height, sizeof(int16_t), 1, wad);
-    outTex->pixels = malloc(sizeof(doomCol) * outTex->width * outTex->height);
+    outTex->pixels = calloc(outTex->width * outTex->height, sizeof(uint32_t));
     if (!outTex->pixels) {
         fprintf(stderr, "failed to malloc for texture %.8s pixel data", outTex->name);
         return;
@@ -364,9 +420,8 @@ void compositeTexture(FILE *wad, texture* outTex, int offset, directoryEntryHash
 
         HASH_FIND(hh, patches, patchName, 8, patchEntry);
         if (patchEntry) {
-            //add actual pixel data. Will do this later because this whole texture compositing system has caused me too much pain
+            insertPatchToTexture(wad, patchEntry, outTex, yStart, xStart, palette);
         }
-
     }
 }
 
