@@ -175,6 +175,13 @@ void handleInputs(GLFWwindow* window, vec3 camPos, vec2 lookAngle, vec3 directio
     if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
         glm_vec3_add(outPos, mov_x, outPos);
     }
+    if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS) {
+        glm_vec3_sub(outPos, mov_y, outPos);
+    }
+    if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS) {
+        glm_vec3_add(outPos, mov_y, outPos);
+    }
+
 
     //y-aligned upwards and downwards movement
     if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
