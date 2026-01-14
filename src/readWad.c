@@ -321,7 +321,12 @@ int collectPNames(FILE *wad, const directoryEntry* entry, namesTable* table) {
         return 0;
     }
 
-    fread(table->names, sizeof *table->names, table->nameCount, wad);
+    fread(table->names, sizeof(*table->names), table->nameCount, wad);
+
+    for (int p = 0; p < table->nameCount; p++) {
+        normaliseTexName(table->names[p]);
+    }
+
     return 1;
 }
 
@@ -525,6 +530,7 @@ doomMap* readWadToMapData(const char* wadPath, const char* mapName) {
         readTextureDefAndCompositeUsed(wad, map->textures, &reqLumpEntries.textureDefs[t], reqLumpEntries.patches, &pNamesTable, usedTextures, colPalette, &compositedTexCount);
     }
     map->textureNum = compositedTexCount;
+    printf("Texture count: %i", compositedTexCount);
 
     texture* temp = realloc(map->textures,sizeof(texture) * map->textureNum);
     if (temp) {map->textures = temp;} //this realloc is really unnecessary but it just feels right
