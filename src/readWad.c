@@ -469,20 +469,26 @@ void readTextureDefAndCompositeUsed(FILE *wad, texture* textures, directoryEntry
 
 doomMap* readWadToMapData(const char* wadPath, const char* mapName) {
 
-    doomMap* map = malloc(sizeof(doomMap));
+    doomMap* map = NULL;
+    FILE* wad = NULL;
+    doomCol* colPalette = NULL;
+    mapTexNameHashed *usedTextures = NULL;
+    header header;
+    reqWadLumps reqLumpEntries;
+    namesTable pNamesTable;
 
+    map = malloc(sizeof(doomMap));
     if (!map) {
         fprintf(stderr, "Failed malloc\n");
         return NULL;
     }
 
-    FILE* wad = fopen(wadPath, "rb");
+    wad = fopen(wadPath, "rb");
     if (!wad) {
         free(map);
         return NULL;
     }
 
-    header header;
     readHeader(wad, &header);
     if (strcmp(header.ident, "IWAD") != 0 && strcmp(header.ident, "PWAD") != 0) {
         fprintf(stderr, "Incorrect file type given.\nfile ident:%s\n", header.ident);
@@ -490,35 +496,29 @@ doomMap* readWadToMapData(const char* wadPath, const char* mapName) {
         return NULL;
     }
 
-    reqWadLumps reqLumpEntries;
     if (!getRequiredLumpEntries(wad, &reqLumpEntries, &header, mapName)) {
         fprintf(stderr, "Failed to locate vital wad lumps\n");
         return NULL;
     }
-
     if (!readMapGeometry(wad, map, &reqLumpEntries.targMapLumps)) {
         fprintf(stderr, "Failed to read map geometry\n");
         return NULL;
     }
 
-    doomCol* colPalette = malloc(sizeof(doomCol) * 256);
+    colPalette = malloc(sizeof(doomCol) * 256);
     if (!colPalette) {
         fprintf(stderr, "Failed to allocate memory for colour palette\n");
         return NULL;
     }
     getColourPalette(wad, &reqLumpEntries.playPal, colPalette);
 
-    namesTable pNamesTable;
     if (!collectPNames(wad, &reqLumpEntries.pnames, &pNamesTable)) {
         fprintf(stderr, "Failed to read Pnames lump\n");
         return NULL;
     }
 
     int usedTexCount = 0;
-
-    mapTexNameHashed *usedTextures = NULL;
     collectUsedTextures(&usedTextures, map, &usedTexCount);
-
     map->textures = malloc(sizeof(texture) * usedTexCount);
     if (!map->textures) {
         fprintf(stderr, "Failed to allocate memory for textures");
@@ -530,7 +530,6 @@ doomMap* readWadToMapData(const char* wadPath, const char* mapName) {
         readTextureDefAndCompositeUsed(wad, map->textures, &reqLumpEntries.textureDefs[t], reqLumpEntries.patches, &pNamesTable, usedTextures, colPalette, &compositedTexCount);
     }
     map->textureNum = compositedTexCount;
-    printf("Texture count: %i", compositedTexCount);
 
     texture* temp = realloc(map->textures,sizeof(texture) * map->textureNum);
     if (temp) {map->textures = temp;} //this realloc is really unnecessary but it just feels right
