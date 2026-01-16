@@ -12,6 +12,7 @@
 #include "ut_hash/uthash.h"
 #include "mapStruct.h"
 #include "mapComponentStructs.h"
+#include "texture.h"
 
 //sizes of map component entries in DOOM wad format:
 #define LINEDEF_SIZE_BYTES 14

@@ -19,6 +19,9 @@ add_executable(doomLooker
         include/vertex.h
         include/model.h
         include/ut_hash/uthash.h
+        include/texture.h
+        src/atlas.c
+        include/atlas.h
 )
 
 target_include_directories(doomLooker PRIVATE

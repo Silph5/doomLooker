@@ -2,15 +2,19 @@
 // Created by tjada on 28/12/2025.
 //
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <windows.h>
+
 #include "../include/buildModel.h"
 #include "vertex.h"
 
 #include "mapStruct.h"
 #include "mapComponentStructs.h"
+#include "texture.h"
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <windows.h>
+
+
 
 #define TRY(func, onError, errorMsg) do { \
     int retval = (func); \
