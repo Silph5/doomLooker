@@ -350,7 +350,7 @@ void insertPatchToTexture(FILE* wad, directoryEntryHashed* patchEntry, texture* 
     fread(columnOffs, sizeof(uint32_t), pWidth, wad);
 
     for (int pX = 0; pX < pWidth; pX++) {
-        fseek(wad, patchEntry->lumpOffs + columnOffs[pX], SEEK_SET);
+        fseek(wad, patchEntry->lumpOffs + (long) columnOffs[pX], SEEK_SET);
 
         uint8_t topDelta = 0; uint8_t len;
 

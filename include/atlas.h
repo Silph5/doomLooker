@@ -39,7 +39,7 @@ typedef struct {
 
 int initAtlas (atlas* atlas);
 
-int addTextureToAtlas(atlas* atlas, texture* texture);
+int addTextureToAtlas(atlas* atlas, const texture* texture);
 
 void exportAtlas(atlas* atlas);
 

@@ -66,7 +66,7 @@ int changeAtlasBottomShelfHeight (atlas* atlas, int newHeight) {
     return 0;
 }
 
-int addTextureToAtlas(atlas* atlas, texture* texture) {
+int addTextureToAtlas(atlas* atlas, const texture* texture) {
 
     if (atlas->bottomShelf.nextOriginX + texture->width > atlas->width) {
         createNewAtlasShelf(atlas);
@@ -76,7 +76,17 @@ int addTextureToAtlas(atlas* atlas, texture* texture) {
         changeAtlasBottomShelfHeight(atlas, texture->height);
     }
 
-    //write pixels to atlas
+    int xStart = atlas->bottomShelf.nextOriginX;
+    int yStart = atlas->bottomShelf.yOffset;
+
+    for (int tY = 0; tY < texture->height; tY++) {
+        int texRowStartI = tY * texture->width;
+        int atlasRowStartI = (yStart + tY) * atlas->width + xStart;
+
+        memcpy(&atlas->pixels[atlasRowStartI], &texture->pixels[texRowStartI], texture->width * sizeof(uint32_t));
+    }
+
+    //need to still do atlas subtext hashtable add so each texture is accessible. testing actual image contruction first.
     return 0;
 }
 

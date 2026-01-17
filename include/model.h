@@ -5,6 +5,7 @@
 #ifndef DOOMLOOKER_MODEL_H
 #define DOOMLOOKER_MODEL_H
 #include <stddef.h>
+#include "atlas.h"
 
 typedef struct {
     size_t vertCount;
@@ -12,6 +13,8 @@ typedef struct {
     float* vertCoords;
     float* vertUVs;
     float* vertNorms;
+
+    atlas* textureAtlas;
 } mapModel;
 
 #endif //DOOMLOOKER_MODEL_H

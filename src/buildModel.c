@@ -12,6 +12,7 @@
 #include "mapStruct.h"
 #include "mapComponentStructs.h"
 #include "texture.h"
+#include "atlas.h"
 
 
 
@@ -144,6 +145,14 @@ mapModel* buildMapModel(doomMap* mapData) {
         fprintf(stderr, "failed to malloc verts container");
         return NULL;
     }
+
+    //texture atlas (temp implementation)
+    model->textureAtlas = malloc(sizeof(atlas));
+    initAtlas(model->textureAtlas);
+    for (int t = 0; t < mapData->textureNum; t++) {
+        addTextureToAtlas(model->textureAtlas, &mapData->textures[t]);
+    }
+
 
     //temporarily only init for max sidedef verts until sectors added
     TRY(initMapModel(model, mapData->sideDefNum * 18), return NULL, MSG_ERROR_MAP_INIT);
