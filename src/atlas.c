@@ -76,8 +76,21 @@ int addTextureToAtlas(atlas* atlas, const texture* texture) {
         changeAtlasBottomShelfHeight(atlas, texture->height);
     }
 
+    atlasSubTexture* subTexture = malloc(sizeof(atlasSubTexture));
+    if (!subTexture) {
+        return -1;
+    }
+
     int xStart = atlas->bottomShelf.nextOriginX;
     int yStart = atlas->bottomShelf.yOffset;
+
+    subTexture->originX = xStart;
+    subTexture->originY = yStart;
+    subTexture->width = texture->width;
+    subTexture->height = texture->height;
+    memcpy(subTexture->name, texture->name, 8);
+
+    HASH_ADD(hh, atlas->subTextures, name, 8, subTexture);
 
     for (int tY = 0; tY < texture->height; tY++) {
         int texRowStartI = tY * texture->width;
@@ -88,11 +101,10 @@ int addTextureToAtlas(atlas* atlas, const texture* texture) {
 
     atlas->bottomShelf.nextOriginX += texture->width;
 
-    //need to still do atlas subtext hashtable add so each texture is accessible. testing actual image contruction first.
     return 0;
 }
 
-void exportAtlas(atlas* atlas) {
+void exportAtlas(atlas* atlas) { //TEMPORARY EXPORTING AS PPM, this isn't widely supported
     FILE* ppm = fopen("../texAtlas.ppm", "wb");
     if (!ppm) {
         return;
