@@ -152,6 +152,7 @@ mapModel* buildMapModel(doomMap* mapData) {
     for (int t = 0; t < mapData->textureNum; t++) {
         addTextureToAtlas(model->textureAtlas, &mapData->textures[t]);
     }
+    exportAtlas(model->textureAtlas);
 
 
     //temporarily only init for max sidedef verts until sectors added

@@ -86,10 +86,31 @@ int addTextureToAtlas(atlas* atlas, const texture* texture) {
         memcpy(&atlas->pixels[atlasRowStartI], &texture->pixels[texRowStartI], texture->width * sizeof(uint32_t));
     }
 
+    atlas->bottomShelf.nextOriginX += texture->width;
+
     //need to still do atlas subtext hashtable add so each texture is accessible. testing actual image contruction first.
     return 0;
 }
 
 void exportAtlas(atlas* atlas) {
+    FILE* ppm = fopen("../texAtlas.ppm", "wb");
+    if (!ppm) {
+        return;
+    }
 
+    fprintf(ppm, "P6\n%d %d \n255\n", atlas->width, atlas->height);
+
+    for (int y = 0; y < atlas->height; y++) {
+        for (int x = 0; x < atlas->width; x++) {
+            uint32_t pixel = atlas->pixels[y * atlas->width + x];
+
+            uint8_t r = (pixel >> 16) & 0xFF;
+            uint8_t g = (pixel >> 8) & 0xFF;
+            uint8_t b = pixel & 0xFF;
+
+            fputc(r, ppm);
+            fputc(g, ppm);
+            fputc(b, ppm);
+        }
+    }
 }
