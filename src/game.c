@@ -249,6 +249,8 @@ int startGame(const mapModel* map) {
     vec2 lookAngle = {3.14f, 0.0f};
     vec3 direction = {};
 
+    glEnable(GL_CULL_FACE);
+
     double currentTime = glfwGetTime();
     do{
         glClear( GL_COLOR_BUFFER_BIT );

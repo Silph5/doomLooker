@@ -78,12 +78,12 @@ int addWallFace(mapModel* model, const modelVert* blCorner, const modelVert* trC
     brCorner.y = blCorner->y;
 
     TRY(addVert(model, &tlCorner), return -1, MSG_ERROR_VERT_ADD);
-    TRY(addVert(model, &brCorner), return -1, MSG_ERROR_VERT_ADD);
     TRY(addVert(model, blCorner), return -1, MSG_ERROR_VERT_ADD);
+    TRY(addVert(model, &brCorner), return -1, MSG_ERROR_VERT_ADD);
 
     TRY(addVert(model, &tlCorner), return -1, MSG_ERROR_VERT_ADD);
-    TRY(addVert(model, trCorner), return -1, MSG_ERROR_VERT_ADD);
     TRY(addVert(model, &brCorner), return -1, MSG_ERROR_VERT_ADD);
+    TRY(addVert(model, trCorner), return -1, MSG_ERROR_VERT_ADD);
 
     return 0;
 }
