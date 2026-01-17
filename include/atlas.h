@@ -9,6 +9,7 @@
 #include "ut_hash/uthash.h"
 
 #define ATLAS_ROW_WIDTH 1024
+#define ATLAS_INIT_SHELF_HEIGHT 128
 
 typedef struct {
     uint16_t height;
@@ -28,7 +29,7 @@ typedef struct {
 } atlasSubTexture;
 
 typedef struct {
-    uint32_t pixels;
+    uint32_t* pixels;
     uint16_t height;
     uint16_t width;
 
