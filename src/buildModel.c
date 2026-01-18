@@ -97,16 +97,16 @@ int addWallFace(mapModel* model, modelVert* blCorner, modelVert* trCorner) {
     //TEMPORARY UV ASSIGNMENT
 
     tlCorner.u = 0.0f;
-    tlCorner.v = 1.0f;
+    tlCorner.v = 0.0f;
 
     blCorner->u = 0.0f;
-    blCorner->v = 0.0f;
+    blCorner->v = 1.0f;
 
     brCorner.u = 1.0f;
-    brCorner.v = 0.0f;
+    brCorner.v = 1.0f;
 
     trCorner->u = 1.0f;
-    trCorner->v = 1.0f;
+    trCorner->v = 0.0f;
 
     TRY(addVert(model, &tlCorner), return -1, MSG_ERROR_VERT_ADD);
     TRY(addVert(model, blCorner), return -1, MSG_ERROR_VERT_ADD);
