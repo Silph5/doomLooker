@@ -12,7 +12,7 @@
 #define MOUSE_SENS 0.05f
 #define MOVE_SPEED 100.0f
 
-void renderFrame(const GLuint program, const GLuint vertexBuffer, const size_t vertCount, vec3 camPos, vec3 direction) {
+void renderFrame(const GLuint program, const GLuint vertexBuffer, const GLuint uvBuffer, const size_t vertCount, vec3 camPos, vec3 direction) {
     glUseProgram(program);
 
     mat4 model, view, proj, pv, mvp;
@@ -32,6 +32,10 @@ void renderFrame(const GLuint program, const GLuint vertexBuffer, const size_t v
     glEnableVertexAttribArray(0);
     glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
+
+    glEnableVertexAttribArray(1);
+    glBindBuffer(GL_ARRAY_BUFFER, uvBuffer);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, (void*)0);
 
     const GLint matID = glGetUniformLocation(program, "mvp");
     glUniformMatrix4fv(matID, 1, GL_FALSE, &mvp[0][0]);
@@ -199,6 +203,7 @@ void handleInputs(GLFWwindow* window, vec3 camPos, vec2 lookAngle, vec3 directio
 int startGame(const mapModel* map) {
 
     float* vertCoords = map->vertCoords;
+    float* vertUVs = map->vertUVs;
     size_t vertCount = map->vertCount;
 
     if (!glfwInit()) {
@@ -236,6 +241,11 @@ int startGame(const mapModel* map) {
     glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer);
     glBufferData(GL_ARRAY_BUFFER, vertCount * 3 * sizeof(float), vertCoords, GL_STATIC_DRAW);
 
+    GLuint uvBuffer;
+    glGenBuffers(1, &uvBuffer);
+    glBindBuffer(GL_ARRAY_BUFFER, uvBuffer);
+    glBufferData(GL_ARRAY_BUFFER, vertCount * 2 * sizeof(float), vertUVs, GL_STATIC_DRAW);
+
     GLuint programID = loadShaders( "../shaders/basicvert.glsl", "../shaders/basicfrag.glsl");
 
     glfwSetInputMode(window, GLFW_STICKY_KEYS, GL_TRUE);
@@ -249,11 +259,29 @@ int startGame(const mapModel* map) {
     vec2 lookAngle = {3.14f, 0.0f};
     vec3 direction = {};
 
+    GLuint atlasID;
+    glGenTextures(1, &atlasID);
+    glBindTexture(GL_TEXTURE_2D, atlasID);
+
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, map->textureAtlas->width, map->textureAtlas->height, 0, GL_BGRA, GL_UNSIGNED_BYTE, map->textureAtlas->pixels);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+    glEnable(GL_DEPTH_TEST);
+    glDepthFunc(GL_LESS);
+
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
     glEnable(GL_CULL_FACE);
 
     double currentTime = glfwGetTime();
     do{
-        glClear( GL_COLOR_BUFFER_BIT );
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         double newTime = glfwGetTime();
         double deltaTime = newTime - currentTime;
@@ -261,7 +289,7 @@ int startGame(const mapModel* map) {
 
         handleInputs(window, camPos, lookAngle, direction, deltaTime);
 
-        renderFrame(programID, vertexBuffer, vertCount, camPos, direction);
+        renderFrame(programID, vertexBuffer, uvBuffer, vertCount, camPos, direction);
 
         glfwSwapBuffers(window);
         glfwPollEvents();

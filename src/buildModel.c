@@ -36,6 +36,11 @@ int initMapModel(mapModel* model, size_t capacity) {
         return -1;
     }
 
+    model->vertUVs = malloc(sizeof(float) * capacity * 2);
+    if (!model->vertUVs) {
+        return -1;
+    }
+
     model->vertCount = 0;
     model->vertCapacity = capacity;
     return 0;
@@ -52,20 +57,32 @@ int addVert(mapModel* model, const modelVert* vert) {
             return -1;
         }
         model->vertCoords = temp;
+
+        temp = realloc(model->vertUVs,sizeof(float) * newCapacity * 2);
+        if (!temp) {
+            fprintf(stderr, "failed realloc during model build\n");
+            return -1;
+        }
+        model->vertUVs = temp;
+
         model->vertCapacity = newCapacity;
     }
 
-    const size_t start = model->vertCount * 3;
-    model->vertCoords[start + 0] = vert->x;
-    model->vertCoords[start + 1] = vert->y;
-    model->vertCoords[start + 2] = vert->z;
+    const size_t xyzStart = model->vertCount * 3;
+    model->vertCoords[xyzStart + 0] = vert->x;
+    model->vertCoords[xyzStart + 1] = vert->y;
+    model->vertCoords[xyzStart + 2] = vert->z;
+
+    const size_t uvStart = model->vertCount * 2;
+    model->vertUVs[uvStart + 0] = vert->u;
+    model->vertUVs[uvStart + 1] = vert->v;
 
     model->vertCount++;
 
     return 0;
 }
 
-int addWallFace(mapModel* model, const modelVert* blCorner, const modelVert* trCorner) {
+int addWallFace(mapModel* model, modelVert* blCorner, modelVert* trCorner) {
 
     modelVert tlCorner;
     tlCorner.x = blCorner->x;
@@ -76,6 +93,20 @@ int addWallFace(mapModel* model, const modelVert* blCorner, const modelVert* trC
     brCorner.x = trCorner->x;
     brCorner.z = trCorner->z;
     brCorner.y = blCorner->y;
+
+    //TEMPORARY UV ASSIGNMENT
+
+    tlCorner.u = 0.0f;
+    tlCorner.v = 1.0f;
+
+    blCorner->u = 0.0f;
+    blCorner->v = 0.0f;
+
+    brCorner.u = 1.0f;
+    brCorner.v = 0.0f;
+
+    trCorner->u = 1.0f;
+    trCorner->v = 1.0f;
 
     TRY(addVert(model, &tlCorner), return -1, MSG_ERROR_VERT_ADD);
     TRY(addVert(model, blCorner), return -1, MSG_ERROR_VERT_ADD);
