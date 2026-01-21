@@ -76,6 +76,15 @@ typedef struct {
     uint8_t r, g, b;
 } doomCol;
 
+void normaliseTexName(char* name) {
+    for (int c = 0; c < 8; c++ /*heh*/) {
+        if (name[c] == '\0') {
+            break;
+        }
+        name[c] = toupper((unsigned char)name[c]);
+    }
+}
+
 void readHeader(FILE* wad, header* head) {
     fread(&head->ident, sizeof(char), 4, wad);
     head->ident[4] = '\0';
@@ -204,8 +213,11 @@ void readSideDef (FILE* wad, sideDef* targetStruct, int offs) {
     fread(&targetStruct->xTexOffset, sizeof(uint16_t), 1, wad);
     fread(&targetStruct->yTexOffset, sizeof(uint16_t), 1, wad);
     fread(&targetStruct->upperTexName, sizeof(char), 8, wad);
+    normaliseTexName(targetStruct->upperTexName);
     fread(&targetStruct->lowerTexName, sizeof(char), 8, wad);
+    normaliseTexName(targetStruct->lowerTexName);
     fread(&targetStruct->midTexName, sizeof(char), 8, wad);
+    normaliseTexName(targetStruct->midTexName);
     fread(&targetStruct->sectFacing, sizeof(uint16_t), 1, wad);
 }
 
@@ -259,15 +271,6 @@ int readMapGeometry (FILE* wad, doomMap* map, mapLumps* mLumpsInfo) {
     }
 
     return 1;
-}
-
-void normaliseTexName(char* name) {
-    for (int c = 0; c < 8; c++ /*heh*/) {
-        if (name[c] == '\0') {
-            break;
-        }
-        name[c] = toupper((unsigned char)name[c]);
-    }
 }
 
 void addUsedTexture(mapTexNameHashed** usedTexTable, const char* texName, int* outCount) {

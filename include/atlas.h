@@ -25,6 +25,8 @@ typedef struct {
     uint16_t width;
     uint16_t height;
 
+    int UVindex;
+
     UT_hash_handle hh;
 } atlasSubTexture;
 
@@ -33,13 +35,19 @@ typedef struct {
     uint16_t height;
     uint16_t width;
 
-    atlasSubTexture* subTextures;
     atlasShelf bottomShelf; //to track where to insert textures and when to create a new shelf
+
+    atlasSubTexture* subTextures;
+    int subTexCount;
+
+    float* subTUVS;
 } atlas;
 
 int initAtlas (atlas* atlas);
 
 int addTextureToAtlas(atlas* atlas, const texture* texture);
+
+int bakeAtlasUVs(atlas* atlas);
 
 void exportAtlas(atlas* atlas);
 

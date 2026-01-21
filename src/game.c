@@ -5,6 +5,7 @@
 #include <cglm/cglm.h>
 
 #include "buildModel.h"
+#include "vertex.h"
 
 #define WINDOW_HEIGHT 800
 #define WINDOW_WIDTH 1500
@@ -12,7 +13,7 @@
 #define MOUSE_SENS 0.05f
 #define MOVE_SPEED 100.0f
 
-void renderFrame(const GLuint program, const GLuint vertexBuffer, const GLuint uvBuffer, const size_t vertCount, vec3 camPos, vec3 direction) {
+void renderFrame(const GLuint program, const size_t vertCount, vec3 camPos, vec3 direction, atlas* atlas) {
     glUseProgram(program);
 
     mat4 model, view, proj, pv, mvp;
@@ -29,20 +30,13 @@ void renderFrame(const GLuint program, const GLuint vertexBuffer, const GLuint u
     glm_mat4_mul(proj, view, pv);
     glm_mat4_mul(pv, model, mvp);
 
-    glEnableVertexAttribArray(0);
-    glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
-
-    glEnableVertexAttribArray(1);
-    glBindBuffer(GL_ARRAY_BUFFER, uvBuffer);
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, (void*)0);
-
     const GLint matID = glGetUniformLocation(program, "mvp");
     glUniformMatrix4fv(matID, 1, GL_FALSE, &mvp[0][0]);
+    GLint atlasRectsLoc = glGetUniformLocation(program, "atlasRects");
+    glUniform4fv(atlasRectsLoc, atlas->subTexCount, atlas->subTUVS);
 
 
     glDrawArrays(GL_TRIANGLES, 0, (GLsizei) vertCount);
-    glDisableVertexAttribArray(0);
 }
 
 GLuint loadShaders(const char* vertexFilePath, const char* fragmentFilePath) {
@@ -202,10 +196,6 @@ void handleInputs(GLFWwindow* window, vec3 camPos, vec2 lookAngle, vec3 directio
 
 int startGame(const mapModel* map) {
 
-    float* vertCoords = map->vertCoords;
-    float* vertUVs = map->vertUVs;
-    size_t vertCount = map->vertCount;
-
     if (!glfwInit()) {
         fprintf(stderr, "Failed to init GLFW");
         return 0;
@@ -239,12 +229,15 @@ int startGame(const mapModel* map) {
     GLuint vertexBuffer;
     glGenBuffers(1, &vertexBuffer);
     glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer);
-    glBufferData(GL_ARRAY_BUFFER, vertCount * 3 * sizeof(float), vertCoords, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, map->vertCount * sizeof(modelVert), map->verts, GL_STATIC_DRAW);
 
-    GLuint uvBuffer;
-    glGenBuffers(1, &uvBuffer);
-    glBindBuffer(GL_ARRAY_BUFFER, uvBuffer);
-    glBufferData(GL_ARRAY_BUFFER, vertCount * 2 * sizeof(float), vertUVs, GL_STATIC_DRAW);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(modelVert), (void*)offsetof(modelVert, x));
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(modelVert), (void*)offsetof(modelVert, u));
+    //location 2 will be for normals
+    glEnableVertexAttribArray(3);
+    glVertexAttribIPointer(3, 1, GL_INT, sizeof(modelVert), (void*)offsetof(modelVert, texID));
 
     GLuint programID = loadShaders( "../shaders/basicvert.glsl", "../shaders/basicfrag.glsl");
 
@@ -289,7 +282,7 @@ int startGame(const mapModel* map) {
 
         handleInputs(window, camPos, lookAngle, direction, deltaTime);
 
-        renderFrame(programID, vertexBuffer, uvBuffer, vertCount, camPos, direction);
+        renderFrame(programID, map->vertCount, camPos, direction, map->textureAtlas);
 
         glfwSwapBuffers(window);
         glfwPollEvents();

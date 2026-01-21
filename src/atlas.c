@@ -17,10 +17,13 @@ int initAtlas (atlas* atlas) {
     }
 
     atlas->subTextures = NULL;
+    atlas->subTUVS = NULL;
 
     atlas->bottomShelf.yOffset = 0;
     atlas->bottomShelf.height = ATLAS_INIT_SHELF_HEIGHT;
     atlas->bottomShelf.nextOriginX = 0;
+
+    atlas->subTexCount = 0;
 
     return 0;
 }
@@ -90,6 +93,9 @@ int addTextureToAtlas(atlas* atlas, const texture* texture) {
     subTexture->height = texture->height;
     memcpy(subTexture->name, texture->name, 8);
 
+    subTexture->UVindex = atlas->subTexCount;
+    atlas->subTexCount++;
+
     HASH_ADD(hh, atlas->subTextures, name, 8, subTexture);
 
     for (int tY = 0; tY < texture->height; tY++) {
@@ -100,6 +106,31 @@ int addTextureToAtlas(atlas* atlas, const texture* texture) {
     }
 
     atlas->bottomShelf.nextOriginX += texture->width;
+
+    return 0;
+}
+
+int bakeAtlasUVs(atlas* atlas) {
+    if (atlas->subTUVS) {
+        free(atlas->subTUVS);
+    }
+
+    atlas->subTUVS = NULL;
+
+    atlas->subTUVS = malloc(sizeof(float) * 4 * atlas->subTexCount);
+    if (!atlas->subTUVS) {
+        fprintf(stderr, "failed to bake atlas UVs");
+        return -1;
+    }
+
+    atlasSubTexture *cur, *tmp;
+    HASH_ITER(hh, atlas->subTextures, cur, tmp) {
+        int TUVBaseIndex = cur->UVindex * 4;
+        atlas->subTUVS[TUVBaseIndex] = (float) cur->originX / (float) atlas->width;
+        atlas->subTUVS[TUVBaseIndex + 1] = (float) cur->originY / (float) atlas->height;
+        atlas->subTUVS[TUVBaseIndex + 2] = (float) (cur->originX + cur->width) / (float) atlas->width;
+        atlas->subTUVS[TUVBaseIndex + 3] = (float) (cur->originY +cur-> height)/ (float) atlas->height;
+    }
 
     return 0;
 }

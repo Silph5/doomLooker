@@ -31,13 +31,8 @@
 #define MSG_ERROR_MAP_INIT "Failed to init map model\n"
 
 int initMapModel(mapModel* model, size_t capacity) {
-    model->vertCoords = malloc(sizeof(float) * capacity * 3);
-    if (!model->vertCoords) {
-        return -1;
-    }
-
-    model->vertUVs = malloc(sizeof(float) * capacity * 2);
-    if (!model->vertUVs) {
+    model->verts = malloc(sizeof(modelVert) * capacity);
+    if (!model->verts) {
         return -1;
     }
 
@@ -51,34 +46,27 @@ int addVert(mapModel* model, const modelVert* vert) {
     if (model->vertCount == model->vertCapacity) {
         fprintf(stderr, "info: expected vertex capacity exceeded\n");
         size_t newCapacity = model->vertCount * 2;
-        float* temp = realloc(model->vertCoords,sizeof(float) * newCapacity * 3);
+        modelVert* temp = realloc(model->verts,sizeof(modelVert) * newCapacity);
         if (!temp) {
             fprintf(stderr, "failed realloc during model build\n");
             return -1;
         }
-        model->vertCoords = temp;
-
-        temp = realloc(model->vertUVs,sizeof(float) * newCapacity * 2);
-        if (!temp) {
-            fprintf(stderr, "failed realloc during model build\n");
-            return -1;
-        }
-        model->vertUVs = temp;
+        model->verts = temp;
 
         model->vertCapacity = newCapacity;
     }
 
-    const size_t xyzStart = model->vertCount * 3;
-    model->vertCoords[xyzStart + 0] = vert->x;
-    model->vertCoords[xyzStart + 1] = vert->y;
-    model->vertCoords[xyzStart + 2] = vert->z;
+    const size_t newVertIndex = model->vertCount;
+    model->verts[newVertIndex].x = vert->x;
+    model->verts[newVertIndex].y = vert->y;
+    model->verts[newVertIndex].z = vert->z;
 
-    const size_t uvStart = model->vertCount * 2;
-    model->vertUVs[uvStart + 0] = vert->u;
-    model->vertUVs[uvStart + 1] = vert->v;
+    model->verts[newVertIndex].u = vert->u;
+    model->verts[newVertIndex].v = vert->v;
+
+    model->verts[newVertIndex].texID = vert->texID;
 
     model->vertCount++;
-
     return 0;
 }
 
@@ -88,11 +76,13 @@ int addWallFace(mapModel* model, modelVert* blCorner, modelVert* trCorner) {
     tlCorner.x = blCorner->x;
     tlCorner.z = blCorner->z;
     tlCorner.y = trCorner->y;
+    tlCorner.texID = trCorner->texID;
 
     modelVert brCorner;
     brCorner.x = trCorner->x;
     brCorner.z = trCorner->z;
     brCorner.y = blCorner->y;
+    brCorner.texID = trCorner->texID;
 
     //TEMPORARY UV ASSIGNMENT
 
@@ -133,9 +123,16 @@ int addSide(mapModel* model, sideDef* side, const sector* sectFacing, sector* se
             return 0;
         }
 
+        atlasSubTexture* temp;
+        HASH_FIND(hh, model->textureAtlas->subTextures, side->midTexName, 8, temp);
+        if (!temp) {
+            return -1;
+        }
 
-        blVert.x = v1->x; blVert.z = v1->y; blVert.y = sectFacing->floorHeight;
-        trVert.x = v2->x; trVert.z = v2->y; trVert.y = sectFacing->ceilHeight;
+        int UVindex = temp->UVindex;
+
+        blVert.x = v1->x; blVert.z = v1->y; blVert.y = sectFacing->floorHeight; blVert.texID = UVindex;
+        trVert.x = v2->x; trVert.z = v2->y; trVert.y = sectFacing->ceilHeight; trVert.texID = UVindex;
 
         TRY(addWallFace(model, &blVert, &trVert), return -1, MSG_ERROR_WALL_ADD)
 
@@ -143,24 +140,49 @@ int addSide(mapModel* model, sideDef* side, const sector* sectFacing, sector* se
     }
 
     if (side->midTexName[0] != '-') {
-        blVert.x = v1->x; blVert.z = v1->y; blVert.y = sectBehind->floorHeight;
-        trVert.x = v2->x; trVert.z = v2->y; trVert.y = sectBehind->ceilHeight;
+
+        atlasSubTexture* temp;
+        HASH_FIND(hh, model->textureAtlas->subTextures, side->midTexName, 8, temp);
+        if (!temp) {
+            return -1;
+        }
+        int UVindex = temp->UVindex;
+
+        blVert.x = v1->x; blVert.z = v1->y; blVert.y = sectBehind->floorHeight; blVert.texID = UVindex;
+        trVert.x = v2->x; trVert.z = v2->y; trVert.y = sectBehind->ceilHeight; trVert.texID = UVindex;
 
         TRY(addWallFace(model, &blVert, &trVert), return -1, MSG_ERROR_WALL_ADD)
 
     }
 
     if (side->upperTexName[0] != '-') {
-        blVert.x = v1->x; blVert.z = v1->y; blVert.y = sectBehind->ceilHeight;
-        trVert.x = v2->x; trVert.z = v2->y; trVert.y = sectFacing->ceilHeight;
+
+        atlasSubTexture* temp;
+        HASH_FIND(hh, model->textureAtlas->subTextures, side->upperTexName, 8, temp);
+        if (!temp) {
+            return -1;
+        }
+        int UVindex = temp->UVindex;
+
+        blVert.x = v1->x; blVert.z = v1->y; blVert.y = sectBehind->ceilHeight; blVert.texID = UVindex;
+        trVert.x = v2->x; trVert.z = v2->y; trVert.y = sectFacing->ceilHeight; trVert.texID = UVindex;
 
         TRY(addWallFace(model, &blVert, &trVert), return -1, MSG_ERROR_WALL_ADD)
 
     }
 
     if (side->lowerTexName[0] != '-') {
-        blVert.x = v1->x; blVert.z = v1->y; blVert.y = sectFacing->floorHeight;
-        trVert.x = v2->x; trVert.z = v2->y; trVert.y = sectBehind->floorHeight;
+
+        atlasSubTexture* temp;
+
+        HASH_FIND(hh, model->textureAtlas->subTextures, side->lowerTexName, 8, temp);
+        if (!temp) {
+            return -1;
+        }
+        int UVindex = temp->UVindex;
+
+        blVert.x = v1->x; blVert.z = v1->y; blVert.y = sectFacing->floorHeight; blVert.texID = UVindex;
+        trVert.x = v2->x; trVert.z = v2->y; trVert.y = sectBehind->floorHeight; trVert.texID = UVindex;
 
         TRY(addWallFace(model, &blVert, &trVert), return -1, MSG_ERROR_WALL_ADD)
 
@@ -183,8 +205,7 @@ mapModel* buildMapModel(doomMap* mapData) {
     for (int t = 0; t < mapData->textureNum; t++) {
         addTextureToAtlas(model->textureAtlas, &mapData->textures[t]);
     }
-    exportAtlas(model->textureAtlas);
-
+    bakeAtlasUVs(model->textureAtlas);
 
     //temporarily only init for max sidedef verts until sectors added
     TRY(initMapModel(model, mapData->sideDefNum * 18), return NULL, MSG_ERROR_MAP_INIT);

@@ -6,13 +6,12 @@
 #define DOOMLOOKER_MODEL_H
 #include <stddef.h>
 #include "atlas.h"
+#include "vertex.h"
 
 typedef struct {
+    modelVert* verts;
     size_t vertCount;
     size_t vertCapacity;
-    float* vertCoords;
-    float* vertUVs;
-    float* vertNorms;
 
     atlas* textureAtlas;
 } mapModel;
