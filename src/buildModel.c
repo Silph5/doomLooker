@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <windows.h>
+#include <math.h>
 
 #include "../include/buildModel.h"
 #include "vertex.h"
@@ -70,33 +71,23 @@ int addVert(mapModel* model, const modelVert* vert) {
     return 0;
 }
 
-int addWallFace(mapModel* model, modelVert* blCorner, modelVert* trCorner) {
+int addWallFace(mapModel* model, const modelVert* blCorner, const modelVert* trCorner) {
 
     modelVert tlCorner;
     tlCorner.x = blCorner->x;
     tlCorner.z = blCorner->z;
     tlCorner.y = trCorner->y;
     tlCorner.texID = trCorner->texID;
+    tlCorner.u = blCorner->u;
+    tlCorner.v = trCorner->v;
 
     modelVert brCorner;
     brCorner.x = trCorner->x;
     brCorner.z = trCorner->z;
     brCorner.y = blCorner->y;
     brCorner.texID = trCorner->texID;
-
-    //TEMPORARY UV ASSIGNMENT
-
-    tlCorner.u = 0.0f;
-    tlCorner.v = 0.0f;
-
-    blCorner->u = 0.0f;
-    blCorner->v = 1.0f;
-
-    brCorner.u = 1.0f;
-    brCorner.v = 1.0f;
-
-    trCorner->u = 1.0f;
-    trCorner->v = 0.0f;
+    brCorner.u = trCorner->u;
+    brCorner.v = blCorner->v;
 
     TRY(addVert(model, &tlCorner), return -1, MSG_ERROR_VERT_ADD);
     TRY(addVert(model, blCorner), return -1, MSG_ERROR_VERT_ADD);
@@ -105,6 +96,30 @@ int addWallFace(mapModel* model, modelVert* blCorner, modelVert* trCorner) {
     TRY(addVert(model, &tlCorner), return -1, MSG_ERROR_VERT_ADD);
     TRY(addVert(model, &brCorner), return -1, MSG_ERROR_VERT_ADD);
     TRY(addVert(model, trCorner), return -1, MSG_ERROR_VERT_ADD);
+
+    return 0;
+}
+
+int applyTexToSide(mapModel* model, modelVert* blVert, modelVert* trVert, const char* texName, int xOffset, int yOffset) {
+
+    atlasSubTexture* tex;
+    HASH_FIND(hh, model->textureAtlas->subTextures, texName, 8, tex);
+    if (!tex) {
+        blVert->texID = 0;
+        trVert->texID = 0;
+        blVert->u = 0.0f; blVert->v = 1.0f;
+        trVert->u = 1.0f; trVert->v = 0.0f;
+        return -1;
+    }
+
+    blVert->texID = tex->UVindex; trVert->texID = tex->UVindex;
+
+    float xTexStart = (float) xOffset; float yTexStart = (float) yOffset; //THESE OFFSETS DON'T WORK PROPERLY! looking into why
+    float faceWidth = hypotf(blVert->x - trVert->x, blVert->z - trVert->z);
+    float faceHeight = trVert->y - blVert->y;
+
+    blVert->u = xTexStart / (float) tex->width; blVert->v = (yTexStart + faceHeight) / (float) tex->height;
+    trVert->u = (xTexStart + faceWidth) / (float) tex->width; trVert->v = yTexStart / (float) tex->height;
 
     return 0;
 }
@@ -123,16 +138,10 @@ int addSide(mapModel* model, sideDef* side, const sector* sectFacing, sector* se
             return 0;
         }
 
-        atlasSubTexture* temp;
-        HASH_FIND(hh, model->textureAtlas->subTextures, side->midTexName, 8, temp);
-        if (!temp) {
-            return -1;
-        }
+        blVert.x = v1->x; blVert.z = v1->y; blVert.y = sectFacing->floorHeight;
+        trVert.x = v2->x; trVert.z = v2->y; trVert.y = sectFacing->ceilHeight;
 
-        int UVindex = temp->UVindex;
-
-        blVert.x = v1->x; blVert.z = v1->y; blVert.y = sectFacing->floorHeight; blVert.texID = UVindex;
-        trVert.x = v2->x; trVert.z = v2->y; trVert.y = sectFacing->ceilHeight; trVert.texID = UVindex;
+        applyTexToSide(model, &blVert, &trVert, side->midTexName, side->xTexOffset, side->yTexOffset);
 
         TRY(addWallFace(model, &blVert, &trVert), return -1, MSG_ERROR_WALL_ADD)
 
@@ -141,15 +150,10 @@ int addSide(mapModel* model, sideDef* side, const sector* sectFacing, sector* se
 
     if (side->midTexName[0] != '-') {
 
-        atlasSubTexture* temp;
-        HASH_FIND(hh, model->textureAtlas->subTextures, side->midTexName, 8, temp);
-        if (!temp) {
-            return -1;
-        }
-        int UVindex = temp->UVindex;
+        blVert.x = v1->x; blVert.z = v1->y; blVert.y = sectBehind->floorHeight;
+        trVert.x = v2->x; trVert.z = v2->y; trVert.y = sectBehind->ceilHeight;
 
-        blVert.x = v1->x; blVert.z = v1->y; blVert.y = sectBehind->floorHeight; blVert.texID = UVindex;
-        trVert.x = v2->x; trVert.z = v2->y; trVert.y = sectBehind->ceilHeight; trVert.texID = UVindex;
+        applyTexToSide(model, &blVert, &trVert, side->midTexName, side->xTexOffset, side->yTexOffset);
 
         TRY(addWallFace(model, &blVert, &trVert), return -1, MSG_ERROR_WALL_ADD)
 
@@ -157,15 +161,10 @@ int addSide(mapModel* model, sideDef* side, const sector* sectFacing, sector* se
 
     if (side->upperTexName[0] != '-') {
 
-        atlasSubTexture* temp;
-        HASH_FIND(hh, model->textureAtlas->subTextures, side->upperTexName, 8, temp);
-        if (!temp) {
-            return -1;
-        }
-        int UVindex = temp->UVindex;
+        blVert.x = v1->x; blVert.z = v1->y; blVert.y = sectBehind->ceilHeight;
+        trVert.x = v2->x; trVert.z = v2->y; trVert.y = sectFacing->ceilHeight;
 
-        blVert.x = v1->x; blVert.z = v1->y; blVert.y = sectBehind->ceilHeight; blVert.texID = UVindex;
-        trVert.x = v2->x; trVert.z = v2->y; trVert.y = sectFacing->ceilHeight; trVert.texID = UVindex;
+        applyTexToSide(model, &blVert, &trVert, side->upperTexName, side->xTexOffset, side->yTexOffset);
 
         TRY(addWallFace(model, &blVert, &trVert), return -1, MSG_ERROR_WALL_ADD)
 
@@ -173,16 +172,10 @@ int addSide(mapModel* model, sideDef* side, const sector* sectFacing, sector* se
 
     if (side->lowerTexName[0] != '-') {
 
-        atlasSubTexture* temp;
+        blVert.x = v1->x; blVert.z = v1->y; blVert.y = sectFacing->floorHeight;
+        trVert.x = v2->x; trVert.z = v2->y; trVert.y = sectBehind->floorHeight;
 
-        HASH_FIND(hh, model->textureAtlas->subTextures, side->lowerTexName, 8, temp);
-        if (!temp) {
-            return -1;
-        }
-        int UVindex = temp->UVindex;
-
-        blVert.x = v1->x; blVert.z = v1->y; blVert.y = sectFacing->floorHeight; blVert.texID = UVindex;
-        trVert.x = v2->x; trVert.z = v2->y; trVert.y = sectBehind->floorHeight; trVert.texID = UVindex;
+        applyTexToSide(model, &blVert, &trVert, side->lowerTexName, side->xTexOffset, side->yTexOffset);
 
         TRY(addWallFace(model, &blVert, &trVert), return -1, MSG_ERROR_WALL_ADD)
 
