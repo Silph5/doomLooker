@@ -100,8 +100,8 @@ int addWallFace(mapModel* model, const modelVert* blCorner, const modelVert* trC
     return 0;
 }
 
-int applyTexToSide(mapModel* model, modelVert* blVert, modelVert* trVert, const char* texName, int xOffset, int yOffset) {
 
+int applyTexToSide(mapModel* model, modelVert* blVert, modelVert* trVert, const char* texName, int xOffset, int yOffset) {
     atlasSubTexture* tex;
     HASH_FIND(hh, model->textureAtlas->subTextures, texName, 8, tex);
     if (!tex) {
@@ -118,9 +118,11 @@ int applyTexToSide(mapModel* model, modelVert* blVert, modelVert* trVert, const 
     float faceWidth = hypotf(blVert->x - trVert->x, blVert->z - trVert->z);
     float faceHeight = trVert->y - blVert->y;
 
-    blVert->u = xTexStart / (float) tex->width; blVert->v = (yTexStart + faceHeight) / (float) tex->height;
-    trVert->u = (xTexStart + faceWidth) / (float) tex->width; trVert->v = yTexStart / (float) tex->height;
+    blVert->u = xTexStart / (float) tex->width;
+    trVert->u = (xTexStart + faceWidth) / (float) tex->width;
 
+    blVert->v = (yTexStart + faceHeight) / (float) tex->height;
+    trVert->v = yTexStart / (float) tex->height;
     return 0;
 }
 
@@ -175,7 +177,15 @@ int addSide(mapModel* model, sideDef* side, const sector* sectFacing, sector* se
         blVert.x = v1->x; blVert.z = v1->y; blVert.y = sectFacing->floorHeight;
         trVert.x = v2->x; trVert.z = v2->y; trVert.y = sectBehind->floorHeight;
 
-        applyTexToSide(model, &blVert, &trVert, side->lowerTexName, side->xTexOffset, side->yTexOffset);
+        int yOffs = side->yTexOffset;
+
+        if (side->upperTexName[0] != '-') {
+            yOffs +=  + (sectFacing->ceilHeight - sectBehind->floorHeight);
+        }
+
+        applyTexToSide(model, &blVert, &trVert, side->lowerTexName, side->xTexOffset, yOffs);
+        //lower texture offsets seem to be based on the mid and upper textures, which i didn't consider, so i had to do some hackyness
+        //this still likely causes mismatches in some places
 
         TRY(addWallFace(model, &blVert, &trVert), return -1, MSG_ERROR_WALL_ADD)
 
