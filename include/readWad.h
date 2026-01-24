@@ -6,6 +6,11 @@
 #define DOOMLOOKER_READWAD_H
 #include "mapStruct.h"
 
+typedef struct {
+    FILE** wads;
+    int wadCount;
+} wadTable;
+
 doomMap* readWadToMapData(const char* wadPath, char* mapName);
 
 void freeDoomMapData(doomMap* map);

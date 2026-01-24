@@ -180,7 +180,7 @@ int addSide(mapModel* model, sideDef* side, const sector* sectFacing, sector* se
         int yOffs = side->yTexOffset;
 
         if (side->upperTexName[0] != '-') {
-            yOffs +=  + (sectFacing->ceilHeight - sectBehind->floorHeight);
+            yOffs += (sectFacing->ceilHeight - sectBehind->floorHeight);
         }
 
         applyTexToSide(model, &blVert, &trVert, side->lowerTexName, side->xTexOffset, yOffs);

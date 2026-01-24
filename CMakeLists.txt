@@ -22,6 +22,7 @@ add_executable(doomLooker
         include/texture.h
         src/atlas.c
         include/atlas.h
+        include/wadTable.h
 )
 
 target_include_directories(doomLooker PRIVATE
