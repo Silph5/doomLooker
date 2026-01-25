@@ -30,12 +30,14 @@ typedef struct {
     int lumpOffs;
     int lumpSize;
     char lumpName[8];
+    FILE* wad;
 } directoryEntry;
 
 typedef struct {
     int lumpOffs;
     int lumpSize;
     char lumpName[8]; //key
+    FILE* wad;
 
     UT_hash_handle hh;
 } directoryEntryHashed;
@@ -85,6 +87,13 @@ void normaliseTexName(char* name) {
     }
 }
 
+void readDirectoryEntry(FILE* wad, directoryEntry* outEntry) {
+    fread(&outEntry->lumpOffs, sizeof(int), 1, wad);
+    fread(&outEntry->lumpSize, sizeof(int), 1, wad);
+    fread(outEntry->lumpName, 1, 8, wad);
+    outEntry->wad = wad;
+}
+
 void readHeader(FILE* wad, header* head) {
     fread(&head->ident, sizeof(char), 4, wad);
     head->ident[4] = '\0';
@@ -99,13 +108,13 @@ void getTargetMapComposition(FILE* wad, mapLumps* mLumpsEntries, int* entryNum) 
 
     fseek(wad, 16, SEEK_CUR); //skips the Things lump
 
-    fread(&mLumpsEntries->lineDefsEntry, sizeof(directoryEntry), 1, wad);
-    fread(&mLumpsEntries->sideDefsEntry, sizeof(directoryEntry), 1, wad);
-    fread(&mLumpsEntries->verticesEntry, sizeof(directoryEntry), 1, wad);
+    readDirectoryEntry(wad, &mLumpsEntries->lineDefsEntry);
+    readDirectoryEntry(wad, &mLumpsEntries->sideDefsEntry);
+    readDirectoryEntry(wad, &mLumpsEntries->verticesEntry);
 
     fseek(wad, 48, SEEK_CUR); //skips the Segs, Ssectors and Nodes lump
 
-    fread(&mLumpsEntries->sectorsEntry, sizeof(directoryEntry), 1, wad);
+    readDirectoryEntry(wad, &mLumpsEntries->sectorsEntry);
 
     *entryNum += 8;
 
@@ -115,8 +124,8 @@ void collectPatchEntries(FILE* wad, directoryEntryHashed** patchTable, int* entr
 
     directoryEntry tempEntry;
 
-    while (fread(&tempEntry, sizeof(directoryEntry), 1, wad) == 1) {
-
+    do {
+        readDirectoryEntry(wad, &tempEntry);
         *entryNum += 1;
 
         if (strncmp(tempEntry.lumpName, "P_END", 5) == 0) {
@@ -135,7 +144,8 @@ void collectPatchEntries(FILE* wad, directoryEntryHashed** patchTable, int* entr
 
         HASH_ADD(hh, *patchTable, lumpName, 8, newPatchEntry);
 
-    }
+    } while (strncmp(tempEntry.lumpName, "P_END", 5) != 0);
+
 }
 
 int getRequiredLumpEntries(FILE* wad, reqWadLumps* wadLumps, const header* header, const char* targetMap) {
@@ -159,7 +169,7 @@ int getRequiredLumpEntries(FILE* wad, reqWadLumps* wadLumps, const header* heade
     bool foundPlayPal = false;
 
     for (int entryNum = 0; entryNum < header->lumpsNum; entryNum++) {
-        fread(&tempEntry, sizeof(directoryEntry), 1, wad);
+        readDirectoryEntry(wad, &tempEntry);
 
         if (strncmp(tempEntry.lumpName, "PLAYPAL", 7) == 0) {
             wadLumps->playPal = tempEntry;
@@ -258,7 +268,7 @@ int readMapGeometry (FILE* wad, doomMap* map, mapLumps* mLumpsInfo) {
         readSideDef(wad, &map->sideDefs[sideNum], mLumpsInfo->sideDefsEntry.lumpOffs + (sideNum * 30));
     }
 
-    map->vertices = malloc(sizeof(vertex) * map->sideDefNum);
+    map->vertices = malloc(sizeof(vertex) * map->vertexNum);
     if (map->vertices == NULL) {fprintf(stderr, "Failed to allocate memory for vertices"); return 0;}
     for (int vertNum = 0; vertNum < map->vertexNum; vertNum++) {
         readVertex(wad, &map->vertices[vertNum], mLumpsInfo->verticesEntry.lumpOffs + (vertNum * 4));
