@@ -8,7 +8,6 @@ set(GLFW_LIBRARY "${CMAKE_SOURCE_DIR}/libs/glfw/libglfw3.a")
 
 add_executable(doomLooker
         src/main.c
-        src/readWad.c
         src/glad.c
         include/mapStruct.h
         include/mapComponentStructs.h
@@ -22,7 +21,9 @@ add_executable(doomLooker
         include/texture.h
         src/atlas.c
         include/atlas.h
-        include/wadTable.h
+        src/wadReading/readWad.c
+        src/wadReading/handleWadComposite.c
+        include/wad.h
 )
 
 target_include_directories(doomLooker PRIVATE

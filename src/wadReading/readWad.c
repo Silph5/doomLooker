@@ -94,14 +94,6 @@ void readDirectoryEntry(FILE* wad, directoryEntry* outEntry) {
     outEntry->wad = wad;
 }
 
-void readHeader(FILE* wad, header* head) {
-    fread(&head->ident, sizeof(char), 4, wad);
-    head->ident[4] = '\0';
-
-    fread(&head->lumpsNum, sizeof(int), 1, wad);
-    fread(&head->directoryOffset, sizeof(int), 1, wad);
-}
-
 void getTargetMapComposition(FILE* wad, mapLumps* mLumpsEntries, int* entryNum) {
 
     //the lumps in each map follow a set order, so I can seek through them.
@@ -481,7 +473,7 @@ void readTextureDefAndCompositeUsed(FILE *wad, texture* textures, directoryEntry
 }
 
 
-doomMap* readWadToMapData(const char* wadPath, const char* mapName) {
+doomMap* xxxx(const char* wadPath, const char* mapName) { //temp rename
 
     doomMap* map = NULL;
     FILE* wad = NULL;
@@ -490,25 +482,6 @@ doomMap* readWadToMapData(const char* wadPath, const char* mapName) {
     header header;
     reqWadLumps reqLumpEntries;
     namesTable pNamesTable;
-
-    map = malloc(sizeof(doomMap));
-    if (!map) {
-        fprintf(stderr, "Failed malloc\n");
-        return NULL;
-    }
-
-    wad = fopen(wadPath, "rb");
-    if (!wad) {
-        free(map);
-        return NULL;
-    }
-
-    readHeader(wad, &header);
-    if (strcmp(header.ident, "IWAD") != 0 && strcmp(header.ident, "PWAD") != 0) {
-        fprintf(stderr, "Incorrect file type given.\nfile ident:%s\n", header.ident);
-        free(map);
-        return NULL;
-    }
 
     if (!getRequiredLumpEntries(wad, &reqLumpEntries, &header, mapName)) {
         fprintf(stderr, "Failed to locate vital wad lumps\n");
