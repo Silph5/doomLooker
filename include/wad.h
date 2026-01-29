@@ -5,6 +5,7 @@
 #ifndef DOOMLOOKER_WAD_H
 #define DOOMLOOKER_WAD_H
 #include <stdio.h>
+#include "directoryEntry.h"
 
 typedef enum {
     DOOMformat,
@@ -14,8 +15,16 @@ typedef enum {
 typedef struct {
     int lumpCount;
     int dirOffset;
+
     FILE* stream;
     wadFormat format;
 } wad;
+
+typedef struct {
+    directoryEntryHashed* patches;
+    directoryEntry pnames;
+    directoryEntry* textureDefs;
+    int textureDefcount;
+} expectedDFormatLumps;
 
 #endif //DOOMLOOKER_WAD_H

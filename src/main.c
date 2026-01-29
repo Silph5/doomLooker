@@ -9,6 +9,9 @@
 #include "game.h"
 #include "buildModel.h"
 
+
+//not currently functioning due to mid-progress refactor
+
 bool mapNameFormatValid(char* mapName) {
 
     if (mapName[0] == 'E' && isdigit(mapName[1]) && mapName[2] == 'M' && isdigit(mapName[3])) {
@@ -23,16 +26,11 @@ bool mapNameFormatValid(char* mapName) {
 }
 
 int main(const int argc, char* argv[]) {
-    //will replace this system. for now, arg1 = mapname, arg2+ = wads
 
     if (argc < 3) {
         printf("Minimum of 2 arguments needed: \npath to Iwad\npath to pwad\nlevel/map name\n");
         return -1;
     }
-
-    wadTable wads;
-    wads.wadCount = argc - 1;
-    wads.wads = malloc(sizeof(FILE*) * wads.wadCount);
 
     char* iwadPath = argv[1];
     char* mapName = argv[2];

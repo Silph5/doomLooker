@@ -13,34 +13,13 @@
 #include "mapStruct.h"
 #include "mapComponentStructs.h"
 #include "texture.h"
+#include "directoryEntry.h"
 
 //sizes of map component entries in DOOM wad format:
 #define LINEDEF_SIZE_BYTES 14
 #define SIDEDEF_SIZE_BYTES 30
 #define VERTEX_SIZE_BYTES 4
 #define SECTOR_SIZE_BYTES 26
-
-typedef struct {
-    char ident[5];
-    int lumpsNum;
-    int directoryOffset;
-} header;
-
-typedef struct {
-    int lumpOffs;
-    int lumpSize;
-    char lumpName[8];
-    FILE* wad;
-} directoryEntry;
-
-typedef struct {
-    int lumpOffs;
-    int lumpSize;
-    char lumpName[8]; //key
-    FILE* wad;
-
-    UT_hash_handle hh;
-} directoryEntryHashed;
 
 typedef struct {
     directoryEntry mapMarkerEntry;

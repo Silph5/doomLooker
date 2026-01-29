@@ -8,9 +8,10 @@
 
 #include "mapStruct.h"
 #include "wad.h"
+#include "directoryEntry.h"
 
 typedef struct {
-    wad* wads;
+    wad* wadArr;
     int wadCount;
 } wadTable;
 
@@ -47,13 +48,29 @@ doomMap* readWadsToDoomMapData (const char** wadPaths, const int wadCount) {
 
     wadTable wads;
     wads.wadCount = wadCount;
-    wads.wads = malloc(sizeof(wad) * wadCount);
-    doomMap* map = malloc(sizeof(doomMap));
-
-    for (int w = 0; w < wadCount; w++) {
-        initWad(wadPaths[w], &wads.wads[w]);
+    wads.wadArr = malloc(sizeof(wad) * wadCount);
+    if (!wads.wadArr) {
+        return NULL; //intellisense insists there's a leak here, i have no idea why
     }
 
-    free(wads.wads);
+    doomMap* map = malloc(sizeof(doomMap));
+    if (!map) {
+        free(wads.wadArr);
+        return NULL;
+    }
+
+    for (int w = 0; w < wadCount; w++) {
+        initWad(wadPaths[w], &wads.wadArr[w]);
+        if (wads.wadArr[w].format == DOOMformat) {
+
+            continue;
+        }
+        if (wads.wadArr[w].format == UDMF) {
+
+            continue;
+        }
+    }
+
+    free(wads.wadArr);
     return map;
 }

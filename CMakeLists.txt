@@ -24,6 +24,7 @@ add_executable(doomLooker
         src/wadReading/readWad.c
         src/wadReading/handleWadComposite.c
         include/wad.h
+        include/directoryEntry.h
 )
 
 target_include_directories(doomLooker PRIVATE
