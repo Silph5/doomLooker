@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "readWad.h"
+#include "wadComposite.h"
 #include "mapStruct.h"
 #include "game.h"
 #include "buildModel.h"
@@ -32,17 +32,14 @@ int main(const int argc, char* argv[]) {
         return -1;
     }
 
-    char* iwadPath = argv[1];
-    char* mapName = argv[2];
-
-    if (!mapNameFormatValid(mapName)) {
+    if (!mapNameFormatValid(argv[1])) {
         printf("Given map name does not follow expected formats (MAPxx or ExMx)");
         return -1;
     }
 
-    doomMap* mapData = readWadToMapData(iwadPath, mapName);
+    doomMap* mapData = readWadsToDoomMapData(argv[1], &argv[2], argc-2);
     if (!mapData) {
-        printf("Failed to read wad: %s\n", iwadPath);
+        printf("Failed to read wad");
         return -1;
     }
 
@@ -51,8 +48,6 @@ int main(const int argc, char* argv[]) {
         printf("Failed to build map model\n");
         return -1;
     }
-
-    freeDoomMapData(mapData);
 
     if (!startGame(model)) {
         printf("An error occured and the program had to exit");

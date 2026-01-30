@@ -14,7 +14,7 @@
 #include "mapComponentStructs.h"
 #include "texture.h"
 #include "directoryEntry.h"
-
+/*
 //sizes of map component entries in DOOM wad format:
 #define LINEDEF_SIZE_BYTES 14
 #define SIDEDEF_SIZE_BYTES 30
@@ -28,8 +28,6 @@ typedef struct {
     directoryEntry verticesEntry;
     directoryEntry sectorsEntry;
 } mapLumps;
-
-#define MAX_TEXTUREX_EXPECTED 4
 
 typedef struct {
     mapLumps targMapLumps;
@@ -58,19 +56,12 @@ typedef struct {
 } doomCol;
 
 void normaliseTexName(char* name) {
-    for (int c = 0; c < 8; c++ /*heh*/) {
+    for (int c = 0; c < 8; c++) {
         if (name[c] == '\0') {
             break;
         }
         name[c] = toupper((unsigned char)name[c]);
     }
-}
-
-void readDirectoryEntry(FILE* wad, directoryEntry* outEntry) {
-    fread(&outEntry->lumpOffs, sizeof(int), 1, wad);
-    fread(&outEntry->lumpSize, sizeof(int), 1, wad);
-    fread(outEntry->lumpName, 1, 8, wad);
-    outEntry->wad = wad;
 }
 
 void getTargetMapComposition(FILE* wad, mapLumps* mLumpsEntries, int* entryNum) {
@@ -525,3 +516,4 @@ void freeDoomMapData(doomMap* map) {
 
     free(map);
 }
+*/

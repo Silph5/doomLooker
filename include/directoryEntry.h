@@ -29,5 +29,6 @@ typedef struct {
     directoryEntry targetMapMarker;
 } overrideEntries;
 
+void readDirectoryEntry(FILE* wad, directoryEntry* outEntry);
 
 #endif //DOOMLOOKER_DIRECTORYENTRY_H

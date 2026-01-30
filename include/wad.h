@@ -7,24 +7,31 @@
 #include <stdio.h>
 #include "directoryEntry.h"
 
+#define MAX_TEXTUREX_EXPECTED 2
+
 typedef enum {
     DOOMformat,
     UDMF
-} wadFormat;
-
-typedef struct {
-    int lumpCount;
-    int dirOffset;
-
-    FILE* stream;
-    wadFormat format;
-} wad;
+} mapFormat;
 
 typedef struct {
     directoryEntryHashed* patches;
     directoryEntry pnames;
-    directoryEntry* textureDefs;
-    int textureDefcount;
-} expectedDFormatLumps;
+    directoryEntry* textureXentries;
+    int textureXcount;
+
+    mapFormat targMapFormat;
+
+    directoryEntry* mapLumpEntries;
+    int mapEntryCount;
+} expectedUniqueLumpEntries;
+
+typedef struct {
+    int lumpCount;
+    int dirOffset;
+    expectedUniqueLumpEntries uniqueLumps;
+
+    FILE* stream;
+} wad;
 
 #endif //DOOMLOOKER_WAD_H

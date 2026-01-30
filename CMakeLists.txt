@@ -21,10 +21,12 @@ add_executable(doomLooker
         include/texture.h
         src/atlas.c
         include/atlas.h
-        src/wadReading/readWad.c
-        src/wadReading/handleWadComposite.c
+        #src/wadReading/DFread.c
+        src/wadReading/wadComposite.c
         include/wad.h
         include/directoryEntry.h
+        src/wadReading/directoryEntry.c
+        include/wadComposite.h
 )
 
 target_include_directories(doomLooker PRIVATE
