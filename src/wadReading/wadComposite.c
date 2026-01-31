@@ -29,7 +29,32 @@ int readWadHeader(FILE* wadStream, int* outLumpCount, int* outDirOffset) {
     return 0;
 }
 
-int readEntriesBetweenMarkersToHashTable (wad* wad, directoryEntryHashed** entryHashTable, const char* endMarker, const int eMcharCount, int* outEntryNum) {
+int readEntriesBetweenMarkersToHashTable (wad* wad, directoryEntryHashed** entryHashTable, const char* endMarker, const int eMcharCount, int wadIndex, int* outEntryNum) {
+
+    directoryEntry tempEntry;
+
+    do {
+        readDirectoryEntry(wad->stream, &tempEntry);
+        *outEntryNum += 1;
+
+        if (strncmp(tempEntry.lumpName, endMarker, eMcharCount) == 0) {
+            break;
+        }
+
+        if (tempEntry.lumpSize == 0) {
+            continue;
+        }
+
+        directoryEntryHashed* newHashEntry = malloc(sizeof(directoryEntryHashed));
+
+        newHashEntry->lumpOffs = tempEntry.lumpOffs;
+        newHashEntry->lumpSize = tempEntry.lumpSize;
+        memcpy(newHashEntry->lumpName, tempEntry.lumpName, 8);
+
+        HASH_ADD(hh, *entryHashTable, lumpName, 8, newHashEntry);
+
+    } while (strncmp(tempEntry.lumpName, endMarker, eMcharCount) != 0);
+
     return 0;
 }
 
@@ -53,7 +78,7 @@ int collectDirectoryEntries(wad* wad, int wadIndex, overrideEntries* mainEntries
             continue;
         }
         if (strncmp(tempEntry.lumpName, "P_START", 7) == 0) {
-            readEntriesBetweenMarkersToHashTable(wad, &wad->uniqueLumps.patches, "P_END", 5, &entryNum);
+            readEntriesBetweenMarkersToHashTable(wad, &wad->uniqueLumps.patches, "P_END", 5, wadIndex, &entryNum);
             continue;
         }
         if (strncmp(tempEntry.lumpName, "PNAMES", 6) == 0) {
