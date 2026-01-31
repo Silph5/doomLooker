@@ -82,33 +82,6 @@ void getTargetMapComposition(FILE* wad, mapLumps* mLumpsEntries, int* entryNum) 
 
 }
 
-void collectPatchEntries(FILE* wad, directoryEntryHashed** patchTable, int* entryNum) {
-
-    directoryEntry tempEntry;
-
-    do {
-        readDirectoryEntry(wad, &tempEntry);
-        *entryNum += 1;
-
-        if (strncmp(tempEntry.lumpName, "P_END", 5) == 0) {
-            break;
-        }
-
-        if (tempEntry.lumpSize == 0) {
-            continue;
-        }
-
-        directoryEntryHashed* newPatchEntry = malloc(sizeof(*newPatchEntry));
-
-        newPatchEntry->lumpOffs = tempEntry.lumpOffs;
-        newPatchEntry->lumpSize = tempEntry.lumpSize;
-        memcpy(newPatchEntry->lumpName, tempEntry.lumpName, 8);
-
-        HASH_ADD(hh, *patchTable, lumpName, 8, newPatchEntry);
-
-    } while (strncmp(tempEntry.lumpName, "P_END", 5) != 0);
-
-}
 
 int getRequiredLumpEntries(FILE* wad, reqWadLumps* wadLumps, const header* header, const char* targetMap) {
     fseek(wad, header->directoryOffset, 0);

@@ -9,21 +9,12 @@
 
 #define MAX_TEXTUREX_EXPECTED 2
 
-typedef enum {
-    DOOMformat,
-    UDMF
-} mapFormat;
-
 typedef struct {
     directoryEntryHashed* patches;
     directoryEntry pnames;
     directoryEntry* textureXentries;
     int textureXcount;
 
-    mapFormat targMapFormat;
-
-    directoryEntry* mapLumpEntries;
-    int mapEntryCount;
 } expectedUniqueLumpEntries;
 
 typedef struct {

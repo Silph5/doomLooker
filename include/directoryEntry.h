@@ -8,6 +8,11 @@
 
 #include "ut_hash/uthash.h"
 
+typedef enum {
+    DOOMformat,
+    UDMF
+} mapFormat;
+
 typedef struct {
     int lumpOffs;
     int lumpSize;
@@ -26,7 +31,9 @@ typedef struct {
 
 typedef struct {
     directoryEntry playPal;
-    directoryEntry targetMapMarker;
+    directoryEntry* targetMapMarker;
+    mapFormat mapFormat;
+
 } overrideEntries;
 
 void readDirectoryEntry(FILE* wad, directoryEntry* outEntry);
