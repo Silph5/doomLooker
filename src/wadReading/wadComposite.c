@@ -34,7 +34,7 @@ int readEntriesBetweenMarkersToHashTable (wad* wad, directoryEntryHashed** entry
     directoryEntry tempEntry;
 
     do {
-        readDirectoryEntry(wad->stream, &tempEntry);
+        readDirectoryEntry(wad->stream, &tempEntry, *outEntryNum);
         *outEntryNum += 1;
 
         if (strncmp(tempEntry.lumpName, endMarker, eMcharCount) == 0) {
@@ -66,7 +66,7 @@ int collectDirectoryEntries(wad* wad, int wadIndex, overrideEntries* mainEntries
     tempEntry.wadIndex = wadIndex;
 
     for (int entryNum = 0; entryNum < wad->lumpCount; entryNum++) {
-        readDirectoryEntry(wad->stream, &tempEntry);
+        readDirectoryEntry(wad->stream, &tempEntry, entryNum);
 
         if (strncmp(tempEntry.lumpName, "PLAYPAL", 7) == 0) {
             mainEntries->playPal = tempEntry;
@@ -86,11 +86,28 @@ int collectDirectoryEntries(wad* wad, int wadIndex, overrideEntries* mainEntries
             continue;
         }
         if (strncmp(tempEntry.lumpName, targetMapName, 5) == 0) {
-
+            mainEntries->mapMarkerEntry = tempEntry;
         }
     }
 
     return 0;
+}
+
+int determineMapFormat(wadTable* wads, directoryEntry mapMarkerEntry, mapFormat* outFormat) {
+    wad entryWad = wads->wadArr[mapMarkerEntry.wadIndex];
+    fseek(entryWad.stream, entryWad.dirOffset + (16 * (mapMarkerEntry.entryNum + 1)), SEEK_SET);
+
+    directoryEntry tempEntry;
+    readDirectoryEntry(entryWad.stream, &tempEntry, mapMarkerEntry.entryNum + 1);
+
+    if (strncmp(tempEntry.lumpName, "THINGS", 6) == 0) {
+        *outFormat = DOOMformat;
+        return 0;
+    }
+    if (strncmp(tempEntry.lumpName, "TEXTMAP", 7) == 0) {
+        *outFormat = UDMF;
+    }
+    return -1;
 }
 
 int initWad(const char* wadPath, wad* outWad) {
@@ -131,6 +148,7 @@ doomMap* readWadsToDoomMapData (const char* mapName, char** wadPaths, const int 
         initWad(wadPaths[w], &wads.wadArr[w]);
         collectDirectoryEntries(&wads.wadArr[w], w, &mainEntries, mapName);
     }
+    determineMapFormat(&wads, mainEntries.mapMarkerEntry, &mainEntries.mapFormat);
 
     free(wads.wadArr);
     return map;

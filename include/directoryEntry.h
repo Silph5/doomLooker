@@ -18,6 +18,7 @@ typedef struct {
     int lumpSize;
     char lumpName[8];
     int wadIndex;
+    int entryNum;
 } directoryEntry;
 
 typedef struct {
@@ -25,6 +26,7 @@ typedef struct {
     int lumpSize;
     char lumpName[8]; //key
     int wadIndex;
+    int entryNum;
 
     UT_hash_handle hh;
 } directoryEntryHashed;
@@ -32,12 +34,11 @@ typedef struct {
 typedef struct {
     directoryEntry playPal;
 
-    directoryEntry* mapLumpEntries;
-    int mapLumpEntryCount;
-
+    directoryEntry mapMarkerEntry;
     mapFormat mapFormat;
+
 } overrideEntries;
 
-void readDirectoryEntry(FILE* wad, directoryEntry* outEntry);
+void readDirectoryEntry(FILE* wad, directoryEntry* outEntry, int entryNum);
 
 #endif //DOOMLOOKER_DIRECTORYENTRY_H
