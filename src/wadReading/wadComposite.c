@@ -107,6 +107,7 @@ int determineMapFormat(wadTable* wads, directoryEntry mapMarkerEntry, mapFormat*
     }
     if (strncmp(tempEntry.lumpName, "TEXTMAP", 7) == 0) {
         *outFormat = UDMF;
+        return 0;
     }
     return -1;
 }
@@ -152,6 +153,9 @@ doomMap* readWadsToDoomMapData (const char* mapName, char** wadPaths, const int 
     determineMapFormat(&wads, mainEntries.mapMarkerEntry, &mainEntries.mapFormat);
     if (mainEntries.mapFormat == DOOMformat) {
         DFreadMap(map, &wads.wadArr[mainEntries.mapMarkerEntry.wadIndex], mainEntries.mapMarkerEntry);
+    } else if (mainEntries.mapFormat == UDMF) {
+        printf("UDMF is not currently supported");
+        return NULL;
     }
 
     free(wads.wadArr);
