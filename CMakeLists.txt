@@ -27,6 +27,9 @@ add_executable(doomLooker
         include/directoryEntry.h
         src/wadReading/directoryEntry.c
         include/wadComposite.h
+        src/wadReading/textureBuilding.c
+        include/textureBuilding.h
+        include/DFread.h
 )
 
 target_include_directories(doomLooker PRIVATE

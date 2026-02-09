@@ -8,6 +8,7 @@
 
 #include "mapStruct.h"
 #include "wad.h"
+#include "DFread.h"
 
 typedef struct {
     wad* wadArr;
@@ -34,7 +35,7 @@ int readEntriesBetweenMarkersToHashTable (wad* wad, directoryEntryHashed** entry
     directoryEntry tempEntry;
 
     do {
-        readDirectoryEntry(wad->stream, &tempEntry, *outEntryNum);
+        readDirectoryEntry(wad->stream, &tempEntry, outEntryNum);
         *outEntryNum += 1;
 
         if (strncmp(tempEntry.lumpName, endMarker, eMcharCount) == 0) {
@@ -65,8 +66,8 @@ int collectDirectoryEntries(wad* wad, int wadIndex, overrideEntries* mainEntries
     directoryEntry tempEntry;
     tempEntry.wadIndex = wadIndex;
 
-    for (int entryNum = 0; entryNum < wad->lumpCount; entryNum++) {
-        readDirectoryEntry(wad->stream, &tempEntry, entryNum);
+    for (int entryNum = 0; entryNum < wad->lumpCount;) {
+        readDirectoryEntry(wad->stream, &tempEntry, &entryNum);
 
         if (strncmp(tempEntry.lumpName, "PLAYPAL", 7) == 0) {
             mainEntries->playPal = tempEntry;
@@ -98,7 +99,7 @@ int determineMapFormat(wadTable* wads, directoryEntry mapMarkerEntry, mapFormat*
     fseek(entryWad.stream, entryWad.dirOffset + (16 * (mapMarkerEntry.entryNum + 1)), SEEK_SET);
 
     directoryEntry tempEntry;
-    readDirectoryEntry(entryWad.stream, &tempEntry, mapMarkerEntry.entryNum + 1);
+    readDirectoryEntry(entryWad.stream, &tempEntry, &mapMarkerEntry.entryNum + 1);
 
     if (strncmp(tempEntry.lumpName, "THINGS", 6) == 0) {
         *outFormat = DOOMformat;
@@ -149,7 +150,20 @@ doomMap* readWadsToDoomMapData (const char* mapName, char** wadPaths, const int 
         collectDirectoryEntries(&wads.wadArr[w], w, &mainEntries, mapName);
     }
     determineMapFormat(&wads, mainEntries.mapMarkerEntry, &mainEntries.mapFormat);
+    if (mainEntries.mapFormat == DOOMformat) {
+        DFreadMap(map, &wads.wadArr[mainEntries.mapMarkerEntry.wadIndex], mainEntries.mapMarkerEntry);
+    }
 
     free(wads.wadArr);
     return map;
+}
+
+void freeDoomMapData(doomMap* map) {
+    free(map->lineDefs);
+    free(map->sectors);
+    free(map->sideDefs);
+    free(map->vertices);
+    free(map->textures);
+
+    free(map);
 }

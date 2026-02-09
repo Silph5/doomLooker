@@ -39,6 +39,10 @@ typedef struct {
 
 } overrideEntries;
 
-void readDirectoryEntry(FILE* wad, directoryEntry* outEntry, int entryNum);
+void readDirectoryEntry(FILE* wad, directoryEntry* outEntry, int* entryNum);
+
+void skipEntries (FILE* wad, int skipCount, int* outEntryNum);
+
+void goToEntryByNum (FILE* wad, int dirOffset, int entryNum);
 
 #endif //DOOMLOOKER_DIRECTORYENTRY_H
