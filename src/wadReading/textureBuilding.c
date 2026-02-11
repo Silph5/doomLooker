@@ -125,7 +125,6 @@ void compositeTexture(wadTable* wads, FILE* tDefWadStream, texture* outTex, int 
 
 
         HASH_FIND(hh, patches, patchName, 8, patchEntry);
-        printf("Patch %.8s from WAD %i at lump %i\n", patchName, patchEntry->wadIndex, patchEntry->lumpOffs);
         insertPatchToTexture(wads->wadArr[patchEntry->wadIndex].stream, patchEntry, outTex, yStart, xStart, palette);
 
     }

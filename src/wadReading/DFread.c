@@ -7,7 +7,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
-#include <windows.h>
 
 #include "mapStruct.h"
 #include "mapComponentStructs.h"
