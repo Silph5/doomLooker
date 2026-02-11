@@ -32,7 +32,6 @@ int readEntriesBetweenMarkersToHashTable (wad* wad, directoryEntryHashed** entry
 
     do {
         readDirectoryEntry(wad->stream, &tempEntry, outEntryNum);
-        *outEntryNum += 1;
 
         if (strncmp(tempEntry.lumpName, endMarker, eMcharCount) == 0) {
             break;
@@ -47,10 +46,12 @@ int readEntriesBetweenMarkersToHashTable (wad* wad, directoryEntryHashed** entry
         newHashEntry->lumpOffs = tempEntry.lumpOffs;
         newHashEntry->lumpSize = tempEntry.lumpSize;
         newHashEntry->wadIndex = wadIndex;
+        newHashEntry->entryNum = *outEntryNum;
 
         memcpy(newHashEntry->lumpName, tempEntry.lumpName, 8);
 
         HASH_ADD(hh, *entryHashTable, lumpName, 8, newHashEntry);
+        *outEntryNum += 1;
 
     } while (strncmp(tempEntry.lumpName, endMarker, eMcharCount) != 0);
 
@@ -98,10 +99,11 @@ int collectDirectoryEntries(wad* wad, int wadIndex, overrideEntries* mainEntries
 
 int determineMapFormat(wadTable* wads, directoryEntry mapMarkerEntry, mapFormat* outFormat) {
     wad entryWad = wads->wadArr[mapMarkerEntry.wadIndex];
-    fseek(entryWad.stream, entryWad.dirOffset + (16 * (mapMarkerEntry.entryNum + 1)), SEEK_SET);
+    int entryNum = mapMarkerEntry.entryNum + 1;
+    goToEntryByNum(entryWad.stream, entryWad.dirOffset, entryNum);
 
     directoryEntry tempEntry;
-    readDirectoryEntry(entryWad.stream, &tempEntry, &mapMarkerEntry.entryNum + 1);
+    readDirectoryEntry(entryWad.stream, &tempEntry, &entryNum);
 
     if (strncmp(tempEntry.lumpName, "THINGS", 6) == 0) {
         *outFormat = DOOMformat;
