@@ -2,6 +2,7 @@
 // Created by tjada on 02/02/2026.
 //
 
+#include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -9,6 +10,7 @@
 #include "mapComponentStructs.h"
 #include "mapStruct.h"
 #include "texture.h"
+#include "wad.h"
 #include "ut_hash/uthash.h"
 
 typedef struct {
@@ -172,6 +174,15 @@ void getColourPalette (FILE* wad, directoryEntry* entry, doomCol* palette) {
     }
 }
 
+void normaliseTexNameTemp(char* name) {
+    for (int c = 0; c < 8; c++) {
+        if (name[c] == '\0') {
+            break;
+        }
+        name[c] = toupper((unsigned char)name[c]);
+    }
+}
+
 int collectPNames(FILE *wad, const directoryEntry* entry, namesTable* table) {
 
     fseek(wad, entry->lumpOffs, SEEK_SET);
@@ -180,16 +191,16 @@ int collectPNames(FILE *wad, const directoryEntry* entry, namesTable* table) {
     table->names = malloc(table->nameCount * sizeof(*table->names));
     if (!table->names) {
         fprintf(stderr, "Failed malloc\n");
-        return 0;
+        return -1;
     }
 
     fread(table->names, sizeof(*table->names), table->nameCount, wad);
 
     for (int p = 0; p < table->nameCount; p++) {
-        //normaliseTexName(table->names[p]);
+        normaliseTexNameTemp(table->names[p]);
     }
 
-    return 1;
+    return 0;
 }
 
 void addUsedTexture(mapTexNameHashed** usedTexTable, const char* texName, int* outCount) {
@@ -224,6 +235,40 @@ void collectUsedTextures (mapTexNameHashed** usedTexTable, doomMap* map, int* ou
     }
 }
 
+int getMapTextures (doomMap* map, overrideEntries* mainEntries, wadTable* wads) {
+
+    mapTexNameHashed* usedTexTable = NULL;
+
+    int texCount;
+    collectUsedTextures(&usedTexTable, map, &texCount);
+    map->textures = malloc(sizeof(texture) * texCount);
+
+    doomCol* colPalette = malloc(sizeof(doomCol) * 256);
+    if (!colPalette) {
+        fprintf(stderr, "Failed to allocate memory for colour palette\n");
+        return -1;
+    }
+    getColourPalette(wads->wadArr[mainEntries->playPal.wadIndex].stream, &mainEntries->playPal, colPalette);
+
+    int compositedTexCount = 0;
+    for (int w = wads->wadCount-1; w > -1; w--) {
+        namesTable pNamesTable;
+        collectPNames(wads->wadArr[w].stream, &wads->wadArr[w].uniqueLumps.pnames, &pNamesTable);
+
+        for (int t = 0; t < wads->wadArr[w].uniqueLumps.textureXcount; t++) {
+            readTextureDefAndCompositeUsed(wads->wadArr[w].stream, map->textures, &wads->wadArr[w].uniqueLumps.textureXentries[t],
+                wads->wadArr[w].uniqueLumps.patches, &pNamesTable, usedTexTable, colPalette, &compositedTexCount);
+        }
+    }
+
+    map->textureNum = compositedTexCount;
+
+    texture* temp = realloc(map->textures,sizeof(texture) * map->textureNum);
+    if (temp) {map->textures = temp;}
+
+    free(colPalette);
+    return 0;
+}
 
 
 #include "../../include/textureBuilding.h"

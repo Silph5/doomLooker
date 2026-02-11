@@ -6,6 +6,6 @@
 #define DOOMLOOKER_WADCOMPOSITE_H
 #include "mapStruct.h"
 
-doomMap* readWadsToDoomMapData (const char* mapName, const char** wadPaths, const int wadCount);
+doomMap* readWadsToDoomMapData (const char* mapName, char** wadPaths, int wadCount);
 
 #endif //DOOMLOOKER_WADCOMPOSITE_H

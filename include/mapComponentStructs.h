@@ -14,8 +14,8 @@ typedef struct lineDef {
 } lineDef;
 
 typedef struct sideDef {
-    uint16_t xTexOffset;
-    uint16_t yTexOffset;
+    int16_t xTexOffset;
+    int16_t yTexOffset;
     char upperTexName[8];
     char lowerTexName[8];
     char midTexName[8];

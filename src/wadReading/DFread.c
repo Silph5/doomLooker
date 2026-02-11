@@ -68,8 +68,8 @@ void readLineDef (FILE* wad, lineDef* targetStruct, int offs) {
 void readSideDef (FILE* wad, sideDef* targetStruct, int offs) {
     fseek(wad, offs, 0);
 
-    fread(&targetStruct->xTexOffset, sizeof(uint16_t), 1, wad);
-    fread(&targetStruct->yTexOffset, sizeof(uint16_t), 1, wad);
+    fread(&targetStruct->xTexOffset, sizeof(int16_t), 1, wad);
+    fread(&targetStruct->yTexOffset, sizeof(int16_t), 1, wad);
     fread(&targetStruct->upperTexName, sizeof(char), 8, wad);
     normaliseTexName(targetStruct->upperTexName);
     fread(&targetStruct->lowerTexName, sizeof(char), 8, wad);
@@ -77,8 +77,6 @@ void readSideDef (FILE* wad, sideDef* targetStruct, int offs) {
     fread(&targetStruct->midTexName, sizeof(char), 8, wad);
     normaliseTexName(targetStruct->midTexName);
     fread(&targetStruct->sectFacing, sizeof(uint16_t), 1, wad);
-
-    printf("%.8s\n", targetStruct->midTexName);
 }
 
 void readVertex (FILE* wad, vertex* targetStruct, int offs) {

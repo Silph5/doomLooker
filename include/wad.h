@@ -25,4 +25,9 @@ typedef struct {
     FILE* stream;
 } wad;
 
+typedef struct {
+    wad* wadArr;
+    int wadCount;
+} wadTable;
+
 #endif //DOOMLOOKER_WAD_H

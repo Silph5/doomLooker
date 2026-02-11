@@ -17,6 +17,6 @@ void goToEntryByNum (FILE* wad, int dirOffset, int entryNum) {
 }
 
 void skipEntries (FILE* wad, int skipCount, int* outEntryNum) {
-    fseek(wad, 16, SEEK_CUR);
+    fseek(wad, 16 * skipCount, SEEK_CUR);
     *outEntryNum += skipCount;
 }

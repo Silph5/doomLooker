@@ -9,5 +9,4 @@
 
 int DFreadMap(doomMap* map, wad* wad, directoryEntry mapMarkerEntry);
 
-
 #endif //DOOMLOOKER_DFREAD_H

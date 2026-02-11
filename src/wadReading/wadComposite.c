@@ -9,11 +9,7 @@
 #include "mapStruct.h"
 #include "wad.h"
 #include "DFread.h"
-
-typedef struct {
-    wad* wadArr;
-    int wadCount;
-} wadTable;
+#include "textureBuilding.h"
 
 int readWadHeader(FILE* wadStream, int* outLumpCount, int* outDirOffset) {
     fseek(wadStream, 0, SEEK_SET);
@@ -150,6 +146,7 @@ doomMap* readWadsToDoomMapData (const char* mapName, char** wadPaths, const int 
         initWad(wadPaths[w], &wads.wadArr[w]);
         collectDirectoryEntries(&wads.wadArr[w], w, &mainEntries, mapName);
     }
+
     determineMapFormat(&wads, mainEntries.mapMarkerEntry, &mainEntries.mapFormat);
     if (mainEntries.mapFormat == DOOMformat) {
         DFreadMap(map, &wads.wadArr[mainEntries.mapMarkerEntry.wadIndex], mainEntries.mapMarkerEntry);
@@ -157,6 +154,8 @@ doomMap* readWadsToDoomMapData (const char* mapName, char** wadPaths, const int 
         printf("UDMF is not currently supported");
         return NULL;
     }
+
+    getMapTextures(map, &mainEntries, &wads);
 
     free(wads.wadArr);
     return map;

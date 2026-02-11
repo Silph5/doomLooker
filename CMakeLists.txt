@@ -21,7 +21,7 @@ add_executable(doomLooker
         include/texture.h
         src/atlas.c
         include/atlas.h
-        #src/wadReading/DFread.c
+        src/wadReading/DFread.c
         src/wadReading/wadComposite.c
         include/wad.h
         include/directoryEntry.h
