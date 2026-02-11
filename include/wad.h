@@ -10,7 +10,6 @@
 #define MAX_TEXTUREX_EXPECTED 2
 
 typedef struct {
-    directoryEntryHashed* patches;
     directoryEntry pnames;
     directoryEntry* textureXentries;
     int textureXcount;

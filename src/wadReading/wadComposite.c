@@ -46,6 +46,8 @@ int readEntriesBetweenMarkersToHashTable (wad* wad, directoryEntryHashed** entry
 
         newHashEntry->lumpOffs = tempEntry.lumpOffs;
         newHashEntry->lumpSize = tempEntry.lumpSize;
+        newHashEntry->wadIndex = wadIndex;
+
         memcpy(newHashEntry->lumpName, tempEntry.lumpName, 8);
 
         HASH_ADD(hh, *entryHashTable, lumpName, 8, newHashEntry);
@@ -75,7 +77,11 @@ int collectDirectoryEntries(wad* wad, int wadIndex, overrideEntries* mainEntries
             continue;
         }
         if (strncmp(tempEntry.lumpName, "P_START", 7) == 0) {
-            readEntriesBetweenMarkersToHashTable(wad, &wad->uniqueLumps.patches, "P_END", 5, wadIndex, &entryNum);
+            readEntriesBetweenMarkersToHashTable(wad, &mainEntries->patches, "P_END", 5, wadIndex, &entryNum);
+            continue;
+        }
+        if (strncmp(tempEntry.lumpName, "PP_START", 7) == 0) {
+            readEntriesBetweenMarkersToHashTable(wad, &mainEntries->patches, "PP_END", 5, wadIndex, &entryNum);
             continue;
         }
         if (strncmp(tempEntry.lumpName, "PNAMES", 6) == 0) {

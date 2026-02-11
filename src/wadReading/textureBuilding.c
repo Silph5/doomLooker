@@ -29,41 +29,41 @@ typedef struct {
     uint8_t r, g, b;
 } doomCol;
 
-void insertPatchToTexture(FILE* wad, directoryEntryHashed* patchEntry, texture* tex, int16_t yStart, int16_t xStart, doomCol* palette) {
+void insertPatchToTexture(FILE* patchWadStream, directoryEntryHashed* patchEntry, texture* tex, int16_t yStart, int16_t xStart, doomCol* palette) {
 
-    fseek(wad, patchEntry->lumpOffs, SEEK_SET);
+    fseek(patchWadStream, patchEntry->lumpOffs, SEEK_SET);
 
     uint16_t pWidth; uint16_t pHeight;
 
-    fread(&pWidth, sizeof(uint16_t), 1, wad);
-    fread(&pHeight, sizeof(uint16_t), 1, wad);
+    fread(&pWidth, sizeof(uint16_t), 1, patchWadStream);
+    fread(&pHeight, sizeof(uint16_t), 1, patchWadStream);
 
-    fseek(wad, 4, SEEK_CUR);
+    fseek(patchWadStream, 4, SEEK_CUR);
 
     uint32_t* columnOffs = malloc(pWidth*sizeof(uint32_t));
     if (!columnOffs) {
         return;
     }
 
-    fread(columnOffs, sizeof(uint32_t), pWidth, wad);
+    fread(columnOffs, sizeof(uint32_t), pWidth, patchWadStream);
 
     for (int pX = 0; pX < pWidth; pX++) {
-        fseek(wad, patchEntry->lumpOffs + (long) columnOffs[pX], SEEK_SET);
+        fseek(patchWadStream, patchEntry->lumpOffs + (long) columnOffs[pX], SEEK_SET);
 
         uint8_t topDelta = 0; uint8_t len;
 
         while (topDelta != 0xFF) {
-            fread(&topDelta, sizeof(uint8_t), 1, wad);
+            fread(&topDelta, sizeof(uint8_t), 1, patchWadStream);
             if (topDelta == 0xFF) {
                 break;
             }
 
-            fread(&len, sizeof(uint8_t), 1, wad);
-            fseek(wad, 1, SEEK_CUR); //padding byte
+            fread(&len, sizeof(uint8_t), 1, patchWadStream);
+            fseek(patchWadStream, 1, SEEK_CUR); //padding byte
 
             for (int p = 0; p < len; p++) {
                 uint8_t palIndex;
-                fread(&palIndex, sizeof(uint8_t), 1, wad);
+                fread(&palIndex, sizeof(uint8_t), 1, patchWadStream);
 
                 int tX = xStart + pX;
                 int tY = yStart + topDelta + p;
@@ -77,84 +77,87 @@ void insertPatchToTexture(FILE* wad, directoryEntryHashed* patchEntry, texture* 
                 }
             }
 
-            fseek(wad, 1, SEEK_CUR); //padding byte
+            fseek(patchWadStream, 1, SEEK_CUR); //padding byte
         }
     }
 
     free(columnOffs);
 }
 
-void compositeTexture(FILE *wad, texture* outTex, int offset, directoryEntryHashed* patches, namesTable* patchTable, doomCol* palette) {
+void compositeTexture(wadTable* wads, FILE* tDefWadStream, texture* outTex, int offset, directoryEntryHashed* patches, namesTable* patchTable, doomCol* palette) {
 
-    fseek(wad, offset, SEEK_SET);
+    fseek(tDefWadStream, offset, SEEK_SET);
 
-    fread(&outTex->name, sizeof(char), 8, wad);
+    fread(&outTex->name, sizeof(char), 8, tDefWadStream);
 
-    fseek(wad, 4, SEEK_CUR);
+    fseek(tDefWadStream, 4, SEEK_CUR);
 
-    fread(&outTex->width, sizeof(int16_t), 1, wad);
-    fread(&outTex->height, sizeof(int16_t), 1, wad);
+    fread(&outTex->width, sizeof(int16_t), 1, tDefWadStream);
+    fread(&outTex->height, sizeof(int16_t), 1, tDefWadStream);
     outTex->pixels = calloc(outTex->width * outTex->height, sizeof(uint32_t));
     if (!outTex->pixels) {
         fprintf(stderr, "failed to malloc for texture %.8s pixel data", outTex->name);
         return;
     }
 
-    fseek(wad, 4, SEEK_CUR);
+    fseek(tDefWadStream, 4, SEEK_CUR);
 
     int16_t patchCount;
 
-    fread(&patchCount, sizeof(int16_t), 1, wad);
+    fread(&patchCount, sizeof(int16_t), 1, tDefWadStream);
 
     int patchStartOffs = offset + 22;
 
     for (int p = 0; p < patchCount; p++) {
-        fseek(wad, patchStartOffs + (10 * p), SEEK_SET);
+        fseek(tDefWadStream, patchStartOffs + (10 * p), SEEK_SET);
 
         int16_t xStart, yStart, patchId;
 
-        fread(&xStart, sizeof(int16_t), 1, wad);
-        fread(&yStart, sizeof(int16_t), 1, wad);
-        fread(&patchId, sizeof(int16_t), 1, wad);
+        fread(&xStart, sizeof(int16_t), 1, tDefWadStream);
+        fread(&yStart, sizeof(int16_t), 1, tDefWadStream);
+        fread(&patchId, sizeof(int16_t), 1, tDefWadStream);
 
         char patchName[8];
         memcpy(patchName, patchTable->names[patchId], 8);
 
         directoryEntryHashed* patchEntry = NULL;
 
+
+
         HASH_FIND(hh, patches, patchName, 8, patchEntry);
-        if (patchEntry) {
-            insertPatchToTexture(wad, patchEntry, outTex, yStart, xStart, palette);
-        }
+        printf("Patch %.8s from WAD %i at lump %i\n", patchName, patchEntry->wadIndex, patchEntry->lumpOffs);
+        insertPatchToTexture(wads->wadArr[patchEntry->wadIndex].stream, patchEntry, outTex, yStart, xStart, palette);
+
     }
 }
 
-void readTextureDefAndCompositeUsed(FILE *wad, texture* textures, directoryEntry* textureDefEntry, directoryEntryHashed* patches, namesTable* patchTable, mapTexNameHashed* usedTextureTable, doomCol* palette, int* compTexCount) {
+void readTextureDefAndCompositeUsed(wadTable *wads, int thisWadIndex, texture* textures, directoryEntry* textureDefEntry, directoryEntryHashed* patches, namesTable* patchTable, mapTexNameHashed* usedTextureTable, doomCol* palette, int* compTexCount) {
 
     //texture1
     int textureDefTexCount;
-    fseek(wad, textureDefEntry->lumpOffs, SEEK_SET); //use file stream
+    FILE* tDefWadStream = wads->wadArr[thisWadIndex].stream;
+    fseek(tDefWadStream, textureDefEntry->lumpOffs, SEEK_SET); //use file stream
 
-    fread(&textureDefTexCount, sizeof(int), 1, wad);
+    fread(&textureDefTexCount, sizeof(int), 1, tDefWadStream);
 
     int* textureOffsets = malloc(sizeof(int) * textureDefTexCount);
 
     for (int t = 0; t < textureDefTexCount; t++) {
-        fread(&textureOffsets[t], sizeof(int), 1, wad);
+        fread(&textureOffsets[t], sizeof(int), 1, tDefWadStream);
     }
 
     for (int t = 0; t < textureDefTexCount; t++) {
         char nextTexName[8];
         mapTexNameHashed *texEntry = NULL;
 
-        fseek(wad, textureDefEntry->lumpOffs + textureOffsets[t], SEEK_SET);
-        fread(nextTexName, sizeof(char), 8, wad);
+        fseek(tDefWadStream, textureDefEntry->lumpOffs + textureOffsets[t], SEEK_SET);
+        fread(nextTexName, sizeof(char), 8, tDefWadStream);
 
         HASH_FIND(hh, usedTextureTable, nextTexName, 8, texEntry);
         if (texEntry && texEntry->textureIndex == -1) {
 
             texEntry->textureIndex = *compTexCount;
-            compositeTexture(wad, &textures[*compTexCount], textureDefEntry->lumpOffs + textureOffsets[t], patches, patchTable, palette);
+            compositeTexture(wads, tDefWadStream, &textures[*compTexCount], textureDefEntry->lumpOffs + textureOffsets[t], patches, patchTable, palette);
 
             *compTexCount += 1;
 
@@ -253,11 +256,13 @@ int getMapTextures (doomMap* map, overrideEntries* mainEntries, wadTable* wads) 
     int compositedTexCount = 0;
     for (int w = wads->wadCount-1; w > -1; w--) {
         namesTable pNamesTable;
-        collectPNames(wads->wadArr[w].stream, &wads->wadArr[w].uniqueLumps.pnames, &pNamesTable);
+        if (wads->wadArr[w].uniqueLumps.pnames.lumpSize != 0) {
+            collectPNames(wads->wadArr[w].stream, &wads->wadArr[w].uniqueLumps.pnames, &pNamesTable);
+        }
 
         for (int t = 0; t < wads->wadArr[w].uniqueLumps.textureXcount; t++) {
-            readTextureDefAndCompositeUsed(wads->wadArr[w].stream, map->textures, &wads->wadArr[w].uniqueLumps.textureXentries[t],
-                wads->wadArr[w].uniqueLumps.patches, &pNamesTable, usedTexTable, colPalette, &compositedTexCount);
+            readTextureDefAndCompositeUsed(wads, w, map->textures, &wads->wadArr[w].uniqueLumps.textureXentries[t],
+                mainEntries->patches, &pNamesTable, usedTexTable, colPalette, &compositedTexCount);
         }
     }
 

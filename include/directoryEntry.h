@@ -32,6 +32,8 @@ typedef struct {
 } directoryEntryHashed;
 
 typedef struct {
+
+    directoryEntryHashed* patches;
     directoryEntry playPal;
 
     directoryEntry mapMarkerEntry;
