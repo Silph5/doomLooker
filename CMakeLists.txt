@@ -6,6 +6,9 @@ set(CMAKE_C_STANDARD 11)
 set(GLFW_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/libs/glfw/include")
 set(GLFW_LIBRARY "${CMAKE_SOURCE_DIR}/libs/glfw/libglfw3.a")
 
+set(LTC_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/include/ltc")
+set(LTC_LIBRARY "${CMAKE_SOURCE_DIR}/libs/ltc/libtrychain.a")
+
 add_executable(doomLooker
         src/main.c
         src/glad.c
@@ -35,13 +38,19 @@ add_executable(doomLooker
 target_include_directories(doomLooker PRIVATE
         ${CMAKE_SOURCE_DIR}/include
         ${GLFW_INCLUDE_DIR}
+        ${LTC_INCLUDE_DIR}
 )
 
 find_package(OpenGL REQUIRED)
 
-#platform-specific
+target_link_libraries(doomLooker PRIVATE
+        ${LTC_LIBRARY}
+        ${GLFW_LIBRARY}
+        OpenGL::GL
+)
+
 if (WIN32)
-    target_link_libraries(doomLooker ${GLFW_LIBRARY} OpenGL::GL opengl32)
+    target_link_libraries(doomLooker PRIVATE opengl32)
 else ()
-    target_link_libraries(doomLooker ${GLFW_LIBRARY} OpenGL::GL dl pthread)
+    target_link_libraries(doomLooker PRIVATE dl pthread)
 endif ()

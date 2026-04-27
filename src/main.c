@@ -3,12 +3,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <libtrychain.h>
 
 #include "wadComposite.h"
 #include "mapStruct.h"
 #include "game.h"
 #include "buildModel.h"
-
 
 //not currently functioning due to mid-progress refactor
 
@@ -36,6 +36,8 @@ int main(const int argc, char* argv[]) {
         printf("Given map name does not follow expected formats (MAPxx or ExMx)");
         return -1;
     }
+
+    ltc_setOutStream(stderr);
 
     doomMap* mapData = readWadsToDoomMapData(argv[1], &argv[2], argc-2);
     if (!mapData) {

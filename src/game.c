@@ -17,7 +17,7 @@ void renderFrame(const GLuint program, const size_t vertCount, vec3 camPos, vec3
     glUseProgram(program);
 
     mat4 model, view, proj, pv, mvp;
-    glm_perspective(glm_rad(45.0f), (float) WINDOW_WIDTH / WINDOW_HEIGHT, 0.1f, 4000.0f, proj);
+    glm_perspective(glm_rad(45.0f), (float) WINDOW_WIDTH / WINDOW_HEIGHT, 0.1f, 5000.0f, proj);
 
     vec3 center;
     glm_vec3_add(camPos, direction, center);
