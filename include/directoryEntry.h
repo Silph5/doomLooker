@@ -6,6 +6,7 @@
 #define DOOMLOOKER_DIRECTORYENTRY_H
 #include <stdio.h>
 
+#include "libtrychain.h"
 #include "ut_hash/uthash.h"
 
 typedef enum {
@@ -41,7 +42,7 @@ typedef struct {
 
 } overrideEntries;
 
-void readDirectoryEntry(FILE* wad, directoryEntry* outEntry, int* entryNum);
+ltc_status readDirectoryEntry(FILE *wad, directoryEntry *outEntry, int *entryNum);
 
 void skipEntries (FILE* wad, int skipCount, int* outEntryNum);
 

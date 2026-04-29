@@ -39,11 +39,10 @@ int main(const int argc, char* argv[]) {
 
     ltc_setOutStream(stderr);
 
-    doomMap* mapData = readWadsToDoomMapData(argv[1], &argv[2], argc-2);
-    if (!mapData) {
-        printf("Failed to read wad");
-        return -1;
-    }
+    doomMap* mapData = NULL;
+    LTC_TRY_ROOT(ltc_malloc((void**)&mapData, sizeof(doomMap)), "Failed to allocate for map data", return -1);
+
+    LTC_TRY_ROOT(readWadsToDoomMapData(mapData, argv[1], &argv[2], argc-2), "Failed to read wad(s)", return -1);
 
     const mapModel* model = buildMapModel(mapData);
     if (!model) {

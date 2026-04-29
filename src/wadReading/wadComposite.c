@@ -5,13 +5,16 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <libtrychain.h>
 
 #include "mapStruct.h"
 #include "wad.h"
 #include "DFread.h"
 #include "textureBuilding.h"
 
-int readWadHeader(FILE* wadStream, int* outLumpCount, int* outDirOffset) {
+ltc_status readWadHeader(FILE* wadStream, int* outLumpCount, int* outDirOffset) {
+    //todo: PROPER ERROR CHECKING OF IO FUNCS
+
     fseek(wadStream, 0, SEEK_SET);
     char ident[4];
     fread(ident, sizeof(char), 4, wadStream);
@@ -23,7 +26,7 @@ int readWadHeader(FILE* wadStream, int* outLumpCount, int* outDirOffset) {
     fread(outLumpCount, sizeof(int), 1, wadStream);
     fread(outDirOffset, sizeof(int), 1, wadStream);
 
-    return 0;
+    return ltc_success;
 }
 
 int readEntriesBetweenMarkersToHashTable (wad* wad, directoryEntryHashed** entryHashTable, const char* endMarker, const int eMcharCount, int wadIndex, int* outEntryNum) {
@@ -58,7 +61,7 @@ int readEntriesBetweenMarkersToHashTable (wad* wad, directoryEntryHashed** entry
     return 0;
 }
 
-int collectDirectoryEntries(wad* wad, int wadIndex, overrideEntries* mainEntries, const char* targetMapName) {
+ltc_status collectDirectoryEntries(wad* wad, int wadIndex, overrideEntries* mainEntries, const char* targetMapName) {
 
     fseek(wad->stream, wad->dirOffset, SEEK_SET);
 
@@ -66,7 +69,7 @@ int collectDirectoryEntries(wad* wad, int wadIndex, overrideEntries* mainEntries
     tempEntry.wadIndex = wadIndex;
 
     for (int entryNum = 0; entryNum < wad->lumpCount;) {
-        readDirectoryEntry(wad->stream, &tempEntry, &entryNum);
+        LTC_TRY(readDirectoryEntry(wad->stream, &tempEntry, &entryNum), "failed to read directory entry");
 
         if (strncmp(tempEntry.lumpName, "PLAYPAL", 7) == 0) {
             mainEntries->playPal = tempEntry;
@@ -94,10 +97,10 @@ int collectDirectoryEntries(wad* wad, int wadIndex, overrideEntries* mainEntries
         }
     }
 
-    return 0;
+    return ltc_success;
 }
 
-int determineMapFormat(wadTable* wads, directoryEntry mapMarkerEntry, mapFormat* outFormat) {
+ltc_status determineMapFormat(wadTable* wads, directoryEntry mapMarkerEntry, mapFormat* outFormat) {
     wad entryWad = wads->wadArr[mapMarkerEntry.wadIndex];
     int entryNum = mapMarkerEntry.entryNum + 1;
     goToEntryByNum(entryWad.stream, entryWad.dirOffset, entryNum);
@@ -107,66 +110,51 @@ int determineMapFormat(wadTable* wads, directoryEntry mapMarkerEntry, mapFormat*
 
     if (strncmp(tempEntry.lumpName, "THINGS", 6) == 0) {
         *outFormat = DOOMformat;
-        return 0;
+        return ltc_success;
     }
     if (strncmp(tempEntry.lumpName, "TEXTMAP", 7) == 0) {
         *outFormat = UDMF;
-        return 0;
+        return ltc_success;
     }
-    return -1;
+    return ltc_fail;
 }
 
-int initWad(const char* wadPath, wad* outWad) {
-    outWad->stream = fopen(wadPath, "rb");
-    if (!outWad->stream) {
-        fprintf(stderr, "Failed to open a wad %s\n", wadPath);
-        return -1;
-    }
+ltc_status initWad(const char* wadPath, wad* outWad) {
+    LTC_TRY(ltc_fopen(&outWad->stream, wadPath, "rb"), "Failed to open wad file");
+    LTC_TRY(ltc_malloc((void**)&outWad->uniqueLumps.textureXentries, sizeof(directoryEntry) * MAX_TEXTUREX_EXPECTED), "failed to malloc for textureX lumps");
+    LTC_TRY(readWadHeader(outWad->stream, &outWad->lumpCount, &outWad->dirOffset), "failed to read wad header");
 
-    outWad->uniqueLumps.textureXentries = malloc(sizeof(directoryEntry) * MAX_TEXTUREX_EXPECTED);
-    if (!outWad->uniqueLumps.textureXentries) {
-        fprintf(stderr, "failed to malloc for textureX lumps");
-        return -1;
-    }
-
-    readWadHeader(outWad->stream, &outWad->lumpCount, &outWad->dirOffset);
-
-    return 0;
+    return ltc_success;
 }
 
-doomMap* readWadsToDoomMapData (const char* mapName, char** wadPaths, const int wadCount) {
+ltc_status readWadsToDoomMapData (doomMap* map, char* mapName, char** wadPaths, const int wadCount) {
 
     wadTable wads;
     wads.wadCount = wadCount;
     wads.wadArr = calloc(wadCount,sizeof(wad));
     if (!wads.wadArr) {
-        return NULL; //clang insists there's a leak here, i have no idea why
-    }
-
-    doomMap* map = malloc(sizeof(doomMap));
-    if (!map) {
-        free(wads.wadArr);
-        return NULL;
+        return ltc_fail_no_mem; //clang insists there's a leak here, i have no idea why
     }
 
     overrideEntries mainEntries = {0};
     for (int w = 0; w < wadCount; w++) {
-        initWad(wadPaths[w], &wads.wadArr[w]);
-        collectDirectoryEntries(&wads.wadArr[w], w, &mainEntries, mapName);
+        LTC_TRY(initWad(wadPaths[w], &wads.wadArr[w]), "failed to init a wad");
+        LTC_TRY(collectDirectoryEntries(&wads.wadArr[w], w, &mainEntries, mapName), "failed to collect a wad's dir entries");
     }
 
-    determineMapFormat(&wads, mainEntries.mapMarkerEntry, &mainEntries.mapFormat);
+    LTC_TRY(determineMapFormat(&wads, mainEntries.mapMarkerEntry, &mainEntries.mapFormat), "failed to determine map format");
     if (mainEntries.mapFormat == DOOMformat) {
         DFreadMap(map, &wads.wadArr[mainEntries.mapMarkerEntry.wadIndex], mainEntries.mapMarkerEntry);
     } else if (mainEntries.mapFormat == UDMF) {
         printf("UDMF is not currently supported");
-        return NULL;
+        return ltc_fail_not_supported;
     }
 
     getMapTextures(map, &mainEntries, &wads);
 
     free(wads.wadArr);
-    return map;
+
+    return ltc_success;
 }
 
 void freeDoomMapData(doomMap* map) {
