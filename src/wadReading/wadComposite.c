@@ -144,13 +144,12 @@ ltc_status readWadsToDoomMapData (doomMap* map, char* mapName, char** wadPaths, 
 
     LTC_TRY(determineMapFormat(&wads, mainEntries.mapMarkerEntry, &mainEntries.mapFormat), "failed to determine map format");
     if (mainEntries.mapFormat == DOOMformat) {
-        DFreadMap(map, &wads.wadArr[mainEntries.mapMarkerEntry.wadIndex], mainEntries.mapMarkerEntry);
+        LTC_TRY(DFreadMap(map, &wads.wadArr[mainEntries.mapMarkerEntry.wadIndex], mainEntries.mapMarkerEntry), "failed to read a Doom Format map");
     } else if (mainEntries.mapFormat == UDMF) {
-        printf("UDMF is not currently supported");
         return ltc_fail_not_supported;
     }
 
-    getMapTextures(map, &mainEntries, &wads);
+    LTC_TRY(getMapTextures(map, &mainEntries, &wads), "failed to get map textures");
 
     free(wads.wadArr);
 

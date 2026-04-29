@@ -34,7 +34,7 @@ void normaliseTexName(char* name) {
     }
 }
 
-void getTargetMapComposition(wad* wad, directoryEntry markerEntry, mapLumpEntries* mLumpEntries) {
+ltc_status getTargetMapComposition(wad* wad, directoryEntry markerEntry, mapLumpEntries* mLumpEntries) {
 
     int entryNum = markerEntry.entryNum;
     goToEntryByNum(wad->stream, wad->dirOffset, markerEntry.entryNum+1); //go to things
@@ -42,15 +42,18 @@ void getTargetMapComposition(wad* wad, directoryEntry markerEntry, mapLumpEntrie
 
     skipEntries(wad->stream, 1, &entryNum); //skips the Things lump
 
-    readDirectoryEntry(wad->stream, &mLumpEntries->lineDefsEntry, &entryNum);
-    readDirectoryEntry(wad->stream, &mLumpEntries->sideDefsEntry, &entryNum);
-    readDirectoryEntry(wad->stream, &mLumpEntries->verticesEntry, &entryNum);
+    LTC_TRY(readDirectoryEntry(wad->stream, &mLumpEntries->lineDefsEntry, &entryNum), "failed to read linedefs entry");
+    LTC_TRY(readDirectoryEntry(wad->stream, &mLumpEntries->sideDefsEntry, &entryNum), "failed to read sidedefs entry");
+    LTC_TRY(readDirectoryEntry(wad->stream, &mLumpEntries->verticesEntry, &entryNum), "failed to read verts entry");
 
     skipEntries(wad->stream, 3, &entryNum); //skips the Segs, Ssectors and Nodes lump
 
-    readDirectoryEntry(wad->stream, &mLumpEntries->sectorsEntry, &entryNum);
+    LTC_TRY(readDirectoryEntry(wad->stream, &mLumpEntries->sectorsEntry, &entryNum), "failed to read sectors entry");
 
+    return ltc_success;
 }
+
+//todo: error checking for below 4 funcs
 
 void readLineDef (FILE* wad, lineDef* targetStruct, int offs) {
     fseek(wad, offs, 0);
@@ -103,40 +106,36 @@ int readMapGeometry (FILE* wad, doomMap* map, mapLumpEntries* mLumpsInfo) {
     map->vertexNum = mLumpsInfo->verticesEntry.lumpSize / VERTEX_SIZE_BYTES;
     map->sectorNum = mLumpsInfo->sectorsEntry.lumpSize / SECTOR_SIZE_BYTES;
 
-    map->lineDefs = malloc(sizeof(lineDef) * map->lineDefNum);
-    if (map->lineDefs == NULL) {fprintf(stderr, "Failed to allocate memory for linedefs"); return 0;}
+    LTC_TRY(ltc_malloc((void**)&map->lineDefs, sizeof(lineDef) * map->lineDefNum), "Failed to allocate for linedefs");
     for (int lineNum = 0; lineNum < map->lineDefNum; lineNum++) {
         readLineDef(wad, &map->lineDefs[lineNum], mLumpsInfo->lineDefsEntry.lumpOffs + (lineNum * LINEDEF_SIZE_BYTES));
     }
 
-    map->sideDefs = malloc(sizeof(sideDef) * map->sideDefNum);
-    if (map->sideDefs == NULL) {fprintf(stderr, "Failed to allocate memory for sidedefs"); return 0;}
+    LTC_TRY(ltc_malloc((void**)&map->sideDefs, sizeof(sideDef) * map->sideDefNum), "Failed to allocate for sidedefs");
     for (int sideNum = 0; sideNum < map->sideDefNum; sideNum++) {
         readSideDef(wad, &map->sideDefs[sideNum], mLumpsInfo->sideDefsEntry.lumpOffs + (sideNum * SIDEDEF_SIZE_BYTES));
     }
 
-    map->vertices = malloc(sizeof(vertex) * map->vertexNum);
-    if (map->vertices == NULL) {fprintf(stderr, "Failed to allocate memory for vertices"); return 0;}
+    LTC_TRY(ltc_malloc((void**)&map->vertices, sizeof(vertex) * map->vertexNum), "Failed to allocate for doom verts");
     for (int vertNum = 0; vertNum < map->vertexNum; vertNum++) {
         readVertex(wad, &map->vertices[vertNum], mLumpsInfo->verticesEntry.lumpOffs + (vertNum * VERTEX_SIZE_BYTES));
     }
 
-    map->sectors = malloc(sizeof(sector) * map->sectorNum);
-    if (map->sectors == NULL) {fprintf(stderr, "Failed to allocate memory for sectors"); return 0;}
+    LTC_TRY(ltc_malloc((void**)&map->sectors, sizeof(sector) * map->sectorNum), "Failed to allocate for sectors");
     for (int sectNum = 0; sectNum < map->sectorNum; sectNum++) {
         readSector(wad, &map->sectors[sectNum], mLumpsInfo->sectorsEntry.lumpOffs + (sectNum * SECTOR_SIZE_BYTES));
     }
 
-    return 1;
+    return ltc_success;
 }
 
-int DFreadMap(doomMap* map, wad* wad, directoryEntry mapMarkerEntry) {
+ltc_status DFreadMap(doomMap* map, wad* wad, directoryEntry mapMarkerEntry) {
 
     mapLumpEntries mLumpEntries;
-    getTargetMapComposition(wad, mapMarkerEntry, &mLumpEntries);
-    readMapGeometry(wad->stream, map, &mLumpEntries);
+    LTC_TRY(getTargetMapComposition(wad, mapMarkerEntry, &mLumpEntries), "failed to get map composition");
+    LTC_TRY(readMapGeometry(wad->stream, map, &mLumpEntries), "failed to read map geometry");
 
-    return 0;
+    return ltc_success;
 }
 
 

@@ -5,6 +5,6 @@
 #ifndef DOOMLOOKER_TEXTUREBUILDING_H
 #define DOOMLOOKER_TEXTUREBUILDING_H
 
-int getMapTextures (doomMap* map, overrideEntries* mainEntries, wadTable* wads);
+ltc_status getMapTextures (doomMap* map, overrideEntries* mainEntries, wadTable* wads);
 
 #endif //DOOMLOOKER_TEXTUREBUILDING_H
