@@ -7,7 +7,7 @@
 #include <windows.h>
 #include <math.h>
 
-#include "../include/buildModel.h"
+#include "../../include/buildModel.h"
 #include "vertex.h"
 
 #include "mapStruct.h"

@@ -16,13 +16,13 @@ add_executable(doomLooker
         include/mapComponentStructs.h
         src/game.c
         include/game.h
-        src/buildModel.c
+        src/sceneBuilding/buildModel.c
         include/buildModel.h
         include/vertex.h
         include/model.h
         include/ut_hash/uthash.h
         include/texture.h
-        src/atlas.c
+        src/sceneBuilding/atlas.c
         include/atlas.h
         src/wadReading/DFread.c
         src/wadReading/wadComposite.c
