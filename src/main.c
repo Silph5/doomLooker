@@ -41,14 +41,11 @@ int main(const int argc, char* argv[]) {
 
     doomMap* mapData = NULL;
     LTC_TRY_ROOT(ltc_malloc((void**)&mapData, sizeof(doomMap)), "Failed to allocate for map data", return -1);
-
     LTC_TRY_ROOT(readWadsToDoomMapData(mapData, argv[1], &argv[2], argc-2), "Failed to read wad(s)", return -1);
 
-    const mapModel* model = buildMapModel(mapData);
-    if (!model) {
-        printf("Failed to build map model\n");
-        return -1;
-    }
+    mapModel* model = NULL;
+    LTC_TRY_ROOT(ltc_malloc((void**)&model, sizeof(mapModel)), "Failed to allocate for map model", return -1;);
+    LTC_TRY_ROOT(buildMapModel(model, mapData), "Failed to build map model", return -1;);
 
     if (!startGame(model)) {
         printf("An error occured and the program had to exit");

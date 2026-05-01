@@ -5,6 +5,7 @@
 #ifndef DOOMLOOKER_ATLAS_H
 #define DOOMLOOKER_ATLAS_H
 
+#include <libtrychain.h>
 #include "texture.h"
 #include "ut_hash/uthash.h"
 
@@ -43,11 +44,11 @@ typedef struct {
     float* subTUVS;
 } atlas;
 
-int initAtlas (atlas* atlas);
+ltc_status initAtlas (atlas* atlas);
 
-int addTextureToAtlas(atlas* atlas, const texture* texture);
+ltc_status addTextureToAtlas(atlas* atlas, const texture* texture);
 
-int bakeAtlasUVs(atlas* atlas);
+ltc_status bakeAtlasUVs(atlas* atlas);
 
 void exportAtlas(atlas* atlas);
 

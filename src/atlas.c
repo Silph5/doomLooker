@@ -6,15 +6,12 @@
 
 #include "atlas.h"
 
-int initAtlas (atlas* atlas) {
+ltc_status initAtlas (atlas* atlas) {
 
     atlas->width = ATLAS_ROW_WIDTH;
     atlas->height = ATLAS_INIT_SHELF_HEIGHT;
-    atlas->pixels = calloc(ATLAS_ROW_WIDTH * ATLAS_INIT_SHELF_HEIGHT, sizeof(uint32_t));
-    if (!atlas->pixels) {
-        fprintf(stderr, "failed to initialise texture atlas\n");
-        return -1;
-    }
+    atlas->pixels = NULL;
+    LTC_TRY(ltc_calloc((void**)&atlas->pixels, ATLAS_ROW_WIDTH * ATLAS_INIT_SHELF_HEIGHT, sizeof(uint32_t)), "Failed to alloc for initial alloc pixels");
 
     atlas->subTextures = NULL;
     atlas->subTUVS = NULL;
@@ -25,30 +22,26 @@ int initAtlas (atlas* atlas) {
 
     atlas->subTexCount = 0;
 
-    return 0;
+    return ltc_success;
 }
 
-int changeAtlasHeight (atlas* atlas, int newHeight) {
+ltc_status changeAtlasHeight (atlas* atlas, int newHeight) {
 
     size_t oldSize = atlas->height * ATLAS_ROW_WIDTH * sizeof(uint32_t);
     size_t newSize = newHeight * ATLAS_ROW_WIDTH * sizeof(uint32_t);
 
-    uint32_t* temp = realloc(atlas->pixels, newSize);
-    if (!temp) {
-        return -1;
-    }
+    LTC_TRY(ltc_realloc((void**)&atlas->pixels, newSize), "Failed to re-allocate texture atlas pixel array");
 
     if (newSize > oldSize) {
-        memset((char*) temp + oldSize, 0, newSize - oldSize);
+        memset((char*) atlas->pixels + oldSize, 0, newSize - oldSize);
     }
 
-    atlas->pixels = temp;
     atlas->height = newHeight;
 
-    return 0;
+    return ltc_success;
 }
 
-int createNewAtlasShelf (atlas* atlas) {
+ltc_status createNewAtlasShelf (atlas* atlas) {
 
     uint16_t newOffset = atlas->bottomShelf.height + atlas->bottomShelf.yOffset;
 
@@ -56,33 +49,31 @@ int createNewAtlasShelf (atlas* atlas) {
     atlas->bottomShelf.height = ATLAS_INIT_SHELF_HEIGHT;
     atlas->bottomShelf.nextOriginX = 0;
 
-    changeAtlasHeight(atlas, atlas->height + ATLAS_INIT_SHELF_HEIGHT);
+    LTC_TRY(changeAtlasHeight(atlas, atlas->height + ATLAS_INIT_SHELF_HEIGHT), "Failed to alter atlas height");
 
-    return 0;
+    return ltc_success;
 }
 
-int changeAtlasBottomShelfHeight (atlas* atlas, int newHeight) {
+ltc_status changeAtlasBottomShelfHeight (atlas* atlas, int newHeight) {
 
-    changeAtlasHeight(atlas, atlas->bottomShelf.yOffset + newHeight);
+    LTC_TRY(changeAtlasHeight(atlas, atlas->bottomShelf.yOffset + newHeight), "Failed to alter atlas height");
     atlas->bottomShelf.height = newHeight;
 
-    return 0;
+    return ltc_success;
 }
 
-int addTextureToAtlas(atlas* atlas, const texture* texture) {
+ltc_status addTextureToAtlas(atlas* atlas, const texture* texture) {
 
     if (atlas->bottomShelf.nextOriginX + texture->width > atlas->width) {
-        createNewAtlasShelf(atlas);
+        LTC_TRY(createNewAtlasShelf(atlas), "failed to create new atlas shelf");
     }
 
     if (texture->height > atlas->bottomShelf.height) {
-        changeAtlasBottomShelfHeight(atlas, texture->height);
+        LTC_TRY(changeAtlasBottomShelfHeight(atlas, texture->height), "Failed to alter atlas bottom shelf height");
     }
 
-    atlasSubTexture* subTexture = malloc(sizeof(atlasSubTexture));
-    if (!subTexture) {
-        return -1;
-    }
+    atlasSubTexture* subTexture = NULL;
+    LTC_TRY(ltc_malloc((void**)&subTexture, sizeof(atlasSubTexture)), "failed to allocate for atlas subTexture");
 
     int xStart = atlas->bottomShelf.nextOriginX;
     int yStart = atlas->bottomShelf.yOffset;
@@ -107,21 +98,17 @@ int addTextureToAtlas(atlas* atlas, const texture* texture) {
 
     atlas->bottomShelf.nextOriginX += texture->width;
 
-    return 0;
+    return ltc_success;
 }
 
-int bakeAtlasUVs(atlas* atlas) {
+ltc_status bakeAtlasUVs(atlas* atlas) {
     if (atlas->subTUVS) {
         free(atlas->subTUVS);
     }
 
     atlas->subTUVS = NULL;
 
-    atlas->subTUVS = malloc(sizeof(float) * 4 * atlas->subTexCount);
-    if (!atlas->subTUVS) {
-        fprintf(stderr, "failed to bake atlas UVs");
-        return -1;
-    }
+    LTC_TRY(ltc_malloc((void**)&atlas->subTUVS, sizeof(float) * 4 * atlas->subTexCount), "Failed to allocate for atlas subtexture UVs");
 
     atlasSubTexture *cur, *tmp;
     HASH_ITER(hh, atlas->subTextures, cur, tmp) {
@@ -132,7 +119,7 @@ int bakeAtlasUVs(atlas* atlas) {
         atlas->subTUVS[TUVBaseIndex + 3] = (float) (cur->originY +cur-> height)/ (float) atlas->height;
     }
 
-    return 0;
+    return ltc_success;
 }
 
 void exportAtlas(atlas* atlas) { //TEMPORARY EXPORTING AS PPM, this isn't widely supported

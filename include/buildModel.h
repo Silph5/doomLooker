@@ -5,9 +5,9 @@
 #ifndef DOOMLOOKER_BUILDMODEL_H
 #define DOOMLOOKER_BUILDMODEL_H
 
+#include <libtrychain.h>
 #include "mapStruct.h"
 #include "model.h"
 
-mapModel* buildMapModel(doomMap* mapData);
-
+ltc_status buildMapModel(mapModel* model, doomMap* mapData);
 #endif //DOOMLOOKER_BUILDMODEL_H
