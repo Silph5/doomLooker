@@ -112,15 +112,15 @@ int readMapGeometry (FILE* wad, doomMap* map, mapLumpEntries* mLumpsInfo) {
     offs += map->lineDefNum * sizeof(lineDef);
 
     offs = (offs + alignof(lineDef) - 1) & ~(alignof(lineDef) - 1);
-    size_t sidedefsOffs = offs;
+    const size_t sidedefsOffs = offs;
     offs += map->sideDefNum * sizeof(sideDef);
 
     offs = (offs + alignof(vertex) - 1) & ~(alignof(vertex) - 1);
-    size_t vertsOffs = offs;
+    const size_t vertsOffs = offs;
     offs += map->vertexNum * sizeof(vertex);
 
     offs = (offs + alignof(sector) - 1) & ~(alignof(sector) - 1);
-    size_t sectorsOffs = offs;
+    const size_t sectorsOffs = offs;
     offs += map->sectorNum * sizeof(sector);
 
     void* mapDataBlock = NULL;
