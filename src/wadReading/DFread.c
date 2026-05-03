@@ -56,48 +56,56 @@ ltc_status getTargetMapComposition(wad* wad, directoryEntry markerEntry, mapLump
 
 //todo: error checking for below 4 funcs
 
-void readLineDef (FILE* wad, lineDef* targetStruct, int offs) {
+ltc_status readLineDef(FILE *wad, lineDef *targetStruct, int offs) {
     fseek(wad, offs, 0);
 
-    fread(&targetStruct->v1, sizeof(uint16_t), 1, wad);
-    fread(&targetStruct->v2, sizeof(uint16_t), 1, wad);
+    if (fread(&targetStruct->v1, sizeof(uint16_t), 1, wad) != 1) {ltc_captureErrno(errno); return ltc_fail_io;}
+    if (fread(&targetStruct->v2, sizeof(uint16_t), 1, wad) != 1)  {ltc_captureErrno(errno); return ltc_fail_io;}
 
     fseek(wad, 6, SEEK_CUR); //skip flags, type, sector tag
 
-    fread(&targetStruct->frontSideNum, sizeof(uint16_t), 1, wad);
-    fread(&targetStruct->backSideNum, sizeof(uint16_t), 1, wad);
+    if (fread(&targetStruct->frontSideNum, sizeof(uint16_t), 1, wad) != 1)  {ltc_captureErrno(errno); return ltc_fail_io;}
+    if (fread(&targetStruct->backSideNum, sizeof(uint16_t), 1, wad) != 1)  {ltc_captureErrno(errno); return ltc_fail_io;}
+
+    return ltc_success;
 }
 
-void readSideDef (FILE* wad, sideDef* targetStruct, int offs) {
+ltc_status readSideDef (FILE* wad, sideDef* targetStruct, int offs) {
     fseek(wad, offs, 0);
 
-    fread(&targetStruct->xTexOffset, sizeof(int16_t), 1, wad);
-    fread(&targetStruct->yTexOffset, sizeof(int16_t), 1, wad);
-    fread(&targetStruct->upperTexName, sizeof(char), 8, wad);
+    if (fread(&targetStruct->xTexOffset, sizeof(int16_t), 1, wad) != 1)  {ltc_captureErrno(errno); return ltc_fail_io;}
+    if (fread(&targetStruct->yTexOffset, sizeof(int16_t), 1, wad) != 1)  {ltc_captureErrno(errno); return ltc_fail_io;}
+    if (fread(&targetStruct->upperTexName, sizeof(char), 8, wad) != 8)  {ltc_captureErrno(errno); return ltc_fail_io;}
     normaliseTexName(targetStruct->upperTexName);
-    fread(&targetStruct->lowerTexName, sizeof(char), 8, wad);
+    if (fread(&targetStruct->lowerTexName, sizeof(char), 8, wad) != 8)  {ltc_captureErrno(errno); return ltc_fail_io;}
     normaliseTexName(targetStruct->lowerTexName);
-    fread(&targetStruct->midTexName, sizeof(char), 8, wad);
+    if (fread(&targetStruct->midTexName, sizeof(char), 8, wad) != 8)  {ltc_captureErrno(errno); return ltc_fail_io;}
     normaliseTexName(targetStruct->midTexName);
-    fread(&targetStruct->sectFacing, sizeof(uint16_t), 1, wad);
+    if (fread(&targetStruct->sectFacing, sizeof(uint16_t), 1, wad) != 1)  {ltc_captureErrno(errno); return ltc_fail_io;}
+
+    return ltc_success;
 }
 
-void readVertex (FILE* wad, vertex* targetStruct, int offs) {
+ltc_status readVertex (FILE* wad, vertex* targetStruct, int offs) {
     fseek(wad, offs, 0);
 
-    fread(&targetStruct->x, sizeof(int16_t), 1, wad);
-    fread(&targetStruct->y, sizeof(int16_t), 1, wad);
+    if (fread(&targetStruct->x, sizeof(int16_t), 1, wad) != 1) {ltc_captureErrno(errno); return ltc_fail_io;}
+    if (fread(&targetStruct->y, sizeof(int16_t), 1, wad) != 1) {ltc_captureErrno(errno); return ltc_fail_io;}
     targetStruct->y *= -1; //the map model ends up mirrored without this
+
+    return ltc_success;
 }
 
-void readSector (FILE* wad, sector* targetStruct, int offs) {
+ltc_status readSector (FILE* wad, sector* targetStruct, int offs) {
     fseek(wad, offs, 0);
 
-    fread(&targetStruct->floorHeight, sizeof(int16_t), 1, wad);
-    fread(&targetStruct->ceilHeight, sizeof(int16_t), 1, wad);
-    fread(&targetStruct->floorTex, sizeof(char), 8, wad);
-    fread(&targetStruct->ceilTex, sizeof(char), 8, wad);
-    fread(&targetStruct->brightness, sizeof(int16_t), 1, wad);
+    if (fread(&targetStruct->floorHeight, sizeof(int16_t), 1, wad) != 1) {ltc_captureErrno(errno); return ltc_fail_io;}
+    if (fread(&targetStruct->ceilHeight, sizeof(int16_t), 1, wad) != 1) {ltc_captureErrno(errno); return ltc_fail_io;}
+    if (fread(&targetStruct->floorTex, sizeof(char), 8, wad) != 8)  {ltc_captureErrno(errno); return ltc_fail_io;}
+    if (fread(&targetStruct->ceilTex, sizeof(char), 8, wad) != 8) {ltc_captureErrno(errno); return ltc_fail_io;}
+    if (fread(&targetStruct->brightness, sizeof(int16_t), 1, wad) != 1)  {ltc_captureErrno(errno); return ltc_fail_io;}
+
+    return ltc_success;
 }
 
 int readMapGeometry (FILE* wad, doomMap* map, mapLumpEntries* mLumpsInfo) {
@@ -132,16 +140,16 @@ int readMapGeometry (FILE* wad, doomMap* map, mapLumpEntries* mLumpsInfo) {
     map->sectors = (sector*)(mapDataBlock + sectorsOffs);
 
     for (int lineNum = 0; lineNum < map->lineDefNum; lineNum++) {
-        readLineDef(wad, &map->lineDefs[lineNum], mLumpsInfo->lineDefsEntry.lumpOffs + (lineNum * LINEDEF_SIZE_BYTES));
+        LTC_TRY(readLineDef(wad, &map->lineDefs[lineNum], mLumpsInfo->lineDefsEntry.lumpOffs + (lineNum * LINEDEF_SIZE_BYTES)), "failed to read DF linedef")
     }
     for (int sideNum = 0; sideNum < map->sideDefNum; sideNum++) {
-        readSideDef(wad, &map->sideDefs[sideNum], mLumpsInfo->sideDefsEntry.lumpOffs + (sideNum * SIDEDEF_SIZE_BYTES));
+        LTC_TRY(readSideDef(wad, &map->sideDefs[sideNum], mLumpsInfo->sideDefsEntry.lumpOffs + (sideNum * SIDEDEF_SIZE_BYTES)), "failed to read DF sidedef");
     }
     for (int vertNum = 0; vertNum < map->vertexNum; vertNum++) {
-        readVertex(wad, &map->vertices[vertNum], mLumpsInfo->verticesEntry.lumpOffs + (vertNum * VERTEX_SIZE_BYTES));
+        LTC_TRY(readVertex(wad, &map->vertices[vertNum], mLumpsInfo->verticesEntry.lumpOffs + (vertNum * VERTEX_SIZE_BYTES)), "failed to read DF vertex")
     }
     for (int sectNum = 0; sectNum < map->sectorNum; sectNum++) {
-        readSector(wad, &map->sectors[sectNum], mLumpsInfo->sectorsEntry.lumpOffs + (sectNum * SECTOR_SIZE_BYTES));
+        LTC_TRY(readSector(wad, &map->sectors[sectNum], mLumpsInfo->sectorsEntry.lumpOffs + (sectNum * SECTOR_SIZE_BYTES)), "failed to read DF sector");
     }
 
     return ltc_success;
