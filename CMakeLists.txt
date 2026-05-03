@@ -33,6 +33,8 @@ add_executable(doomLooker
         src/wadReading/textureBuilding.c
         include/textureBuilding.h
         include/DFread.h
+        src/sceneBuilding/sectorPoly.c
+        include/sectorPoly.h
 )
 
 target_include_directories(doomLooker PRIVATE

@@ -1,0 +1,10 @@
+//
+// Created by tjada on 03/05/2026.
+//
+
+
+
+#ifndef DOOMLOOKER_SECTORPOLY_H
+#define DOOMLOOKER_SECTORPOLY_H
+
+#endif //DOOMLOOKER_SECTORPOLY_H
