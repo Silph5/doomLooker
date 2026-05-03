@@ -6,34 +6,34 @@
 #define DOOMLOOKER_MAPCOMPONENTSTRUCTS_H
 #include <stdint.h>
 
-typedef struct lineDef {
+typedef struct LineDef {
     uint16_t v1;
     uint16_t v2;
     uint16_t frontSideNum;
     uint16_t backSideNum;
-} lineDef;
+} LineDef;
 
-typedef struct sideDef {
+typedef struct SideDef {
     int16_t xTexOffset;
     int16_t yTexOffset;
     char upperTexName[8];
     char lowerTexName[8];
     char midTexName[8];
     uint16_t sectFacing;
-} sideDef;
+} SideDef;
 
-typedef struct vertex {
+typedef struct Vertex {
     int16_t x;
     int16_t y;
-} vertex;
+} Vertex;
 
-typedef struct sector {
+typedef struct Sector {
     int16_t floorHeight;
     int16_t ceilHeight;
     char floorTex[8];
     char ceilTex[8];
     int16_t brightness;
-} sector;
+} Sector;
 
 
 #endif //DOOMLOOKER_MAPCOMPONENTSTRUCTS_H

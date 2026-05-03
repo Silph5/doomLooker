@@ -6,23 +6,23 @@
 #define DOOMLOOKER_LEVEL_H
 
 //forward declaration to obscure map components from includes of only mapStruct
-typedef struct lineDef lineDef;
-typedef struct sideDef sideDef;
-typedef struct vertex vertex;
-typedef struct sector sector;
-typedef struct texture texture;
+typedef struct LineDef LineDef;
+typedef struct SideDef SideDef;
+typedef struct Vertex Vertex;
+typedef struct Sector Sector;
+typedef struct Texture Texture;
 
 typedef struct {
-    lineDef* lineDefs;
-    sideDef* sideDefs;
-    vertex* vertices;
-    sector* sectors;
-    texture* textures;
+    LineDef* lineDefs;
+    SideDef* sideDefs;
+    Vertex* vertices;
+    Sector* sectors;
+    Texture* textures;
     int lineDefNum;
     int sideDefNum;
     int vertexNum;
     int sectorNum;
     int textureNum;
-} doomMap;
+}   DoomMap;
 
 #endif //DOOMLOOKER_LEVEL_H

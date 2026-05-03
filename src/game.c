@@ -13,7 +13,7 @@
 #define MOUSE_SENS 0.05f
 #define MOVE_SPEED 100.0f
 
-void renderFrame(const GLuint program, const size_t vertCount, vec3 camPos, vec3 direction, atlas* atlas) {
+void renderFrame(const GLuint program, const size_t vertCount, vec3 camPos, vec3 direction, Atlas* atlas) {
     glUseProgram(program);
 
     mat4 model, view, proj, pv, mvp;
@@ -194,7 +194,7 @@ void handleInputs(GLFWwindow* window, vec3 camPos, vec2 lookAngle, vec3 directio
 
 }
 
-int startGame(const mapModel* map) {
+int startGame(const MapModel* map) {
 
     if (!glfwInit()) {
         fprintf(stderr, "Failed to init GLFW");
@@ -229,15 +229,15 @@ int startGame(const mapModel* map) {
     GLuint vertexBuffer;
     glGenBuffers(1, &vertexBuffer);
     glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer);
-    glBufferData(GL_ARRAY_BUFFER, map->vertCount * sizeof(modelVert), map->verts, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, map->vertCount * sizeof(ModelVert), map->verts, GL_STATIC_DRAW);
 
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(modelVert), (void*)offsetof(modelVert, x));
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(ModelVert), (void*)offsetof(ModelVert, x));
     glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(modelVert), (void*)offsetof(modelVert, u));
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(ModelVert), (void*)offsetof(ModelVert, u));
     //location 2 will be for normals
     glEnableVertexAttribArray(3);
-    glVertexAttribIPointer(3, 1, GL_INT, sizeof(modelVert), (void*)offsetof(modelVert, texID));
+    glVertexAttribIPointer(3, 1, GL_INT, sizeof(ModelVert), (void*)offsetof(ModelVert, texID));
 
     GLuint programID = loadShaders( "../shaders/basicvert.glsl", "../shaders/basicfrag.glsl");
 

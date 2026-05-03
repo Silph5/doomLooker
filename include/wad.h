@@ -10,23 +10,23 @@
 #define MAX_TEXTUREX_EXPECTED 2
 
 typedef struct {
-    directoryEntry pnames;
-    directoryEntry* textureXentries;
+    DirectoryEntry pnames;
+    DirectoryEntry* textureXentries;
     int textureXcount;
 
-} expectedUniqueLumpEntries;
+} ExpectedUniqueLumpEntries;
 
 typedef struct {
     int lumpCount;
     int dirOffset;
-    expectedUniqueLumpEntries uniqueLumps;
+    ExpectedUniqueLumpEntries uniqueLumps;
 
     FILE* stream;
-} wad;
+} Wad;
 
 typedef struct {
-    wad* wadArr;
+    Wad* wadArr;
     int wadCount;
-} wadTable;
+} WadTable;
 
 #endif //DOOMLOOKER_WAD_H

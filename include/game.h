@@ -6,6 +6,6 @@
 #define DOOMLOOKER_GAME_H
 
 #include "model.h"
-int startGame(const mapModel* vertsList);
+int startGame(const MapModel* vertsList);
 
 #endif //DOOMLOOKER_GAME_H

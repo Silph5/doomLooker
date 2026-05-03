@@ -4,7 +4,7 @@
 
 #include "directoryEntry.h"
 
-ltc_status readDirectoryEntry(FILE *wad, directoryEntry *outEntry, int *entryNum) {
+ltc_status readDirectoryEntry(FILE *wad, DirectoryEntry *outEntry, int *entryNum) {
     if (fread(&outEntry->lumpOffs, sizeof(int), 1, wad) != 1) {
         ltc_captureErrno(errno); return ltc_fail_io;
     }

@@ -20,11 +20,11 @@
 #define SECTOR_SIZE_BYTES 26
 
 typedef struct {
-    directoryEntry lineDefsEntry;
-    directoryEntry sideDefsEntry;
-    directoryEntry verticesEntry;
-    directoryEntry sectorsEntry;
-} mapLumpEntries;
+    DirectoryEntry lineDefsEntry;
+    DirectoryEntry sideDefsEntry;
+    DirectoryEntry verticesEntry;
+    DirectoryEntry sectorsEntry;
+} MapLumpEntries;
 
 void normaliseTexName(char* name) {
     for (int c = 0; c < 8; c++) {
@@ -35,7 +35,7 @@ void normaliseTexName(char* name) {
     }
 }
 
-ltc_status getTargetMapComposition(wad* wad, directoryEntry markerEntry, mapLumpEntries* mLumpEntries) {
+ltc_status getTargetMapComposition(Wad* wad, DirectoryEntry markerEntry, MapLumpEntries* mLumpEntries) {
 
     int entryNum = markerEntry.entryNum;
     goToEntryByNum(wad->stream, wad->dirOffset, markerEntry.entryNum+1); //go to things
@@ -56,7 +56,7 @@ ltc_status getTargetMapComposition(wad* wad, directoryEntry markerEntry, mapLump
 
 //todo: error checking for below 4 funcs
 
-ltc_status readLineDef(FILE *wad, lineDef *targetStruct, int offs) {
+ltc_status readLineDef(FILE *wad, LineDef *targetStruct, int offs) {
     fseek(wad, offs, 0);
 
     if (fread(&targetStruct->v1, sizeof(uint16_t), 1, wad) != 1) {ltc_captureErrno(errno); return ltc_fail_io;}
@@ -70,7 +70,7 @@ ltc_status readLineDef(FILE *wad, lineDef *targetStruct, int offs) {
     return ltc_success;
 }
 
-ltc_status readSideDef (FILE* wad, sideDef* targetStruct, int offs) {
+ltc_status readSideDef (FILE* wad, SideDef* targetStruct, int offs) {
     fseek(wad, offs, 0);
 
     if (fread(&targetStruct->xTexOffset, sizeof(int16_t), 1, wad) != 1)  {ltc_captureErrno(errno); return ltc_fail_io;}
@@ -86,7 +86,7 @@ ltc_status readSideDef (FILE* wad, sideDef* targetStruct, int offs) {
     return ltc_success;
 }
 
-ltc_status readVertex (FILE* wad, vertex* targetStruct, int offs) {
+ltc_status readVertex (FILE* wad, Vertex* targetStruct, int offs) {
     fseek(wad, offs, 0);
 
     if (fread(&targetStruct->x, sizeof(int16_t), 1, wad) != 1) {ltc_captureErrno(errno); return ltc_fail_io;}
@@ -96,7 +96,7 @@ ltc_status readVertex (FILE* wad, vertex* targetStruct, int offs) {
     return ltc_success;
 }
 
-ltc_status readSector (FILE* wad, sector* targetStruct, int offs) {
+ltc_status readSector (FILE* wad, Sector* targetStruct, int offs) {
     fseek(wad, offs, 0);
 
     if (fread(&targetStruct->floorHeight, sizeof(int16_t), 1, wad) != 1) {ltc_captureErrno(errno); return ltc_fail_io;}
@@ -108,7 +108,7 @@ ltc_status readSector (FILE* wad, sector* targetStruct, int offs) {
     return ltc_success;
 }
 
-int readMapGeometry (FILE* wad, doomMap* map, mapLumpEntries* mLumpsInfo) {
+int readMapGeometry (FILE* wad, DoomMap* map, MapLumpEntries* mLumpsInfo) {
 
     map->lineDefNum = mLumpsInfo->lineDefsEntry.lumpSize / LINEDEF_SIZE_BYTES;
     map->sideDefNum = mLumpsInfo->sideDefsEntry.lumpSize / SIDEDEF_SIZE_BYTES;
@@ -117,27 +117,27 @@ int readMapGeometry (FILE* wad, doomMap* map, mapLumpEntries* mLumpsInfo) {
 
     size_t offs = 0;
     size_t linedefsOffs = offs;
-    offs += map->lineDefNum * sizeof(lineDef);
+    offs += map->lineDefNum * sizeof(LineDef);
 
-    offs = (offs + alignof(lineDef) - 1) & ~(alignof(lineDef) - 1);
+    offs = (offs + alignof(LineDef) - 1) & ~(alignof(LineDef) - 1);
     const size_t sidedefsOffs = offs;
-    offs += map->sideDefNum * sizeof(sideDef);
+    offs += map->sideDefNum * sizeof(SideDef);
 
-    offs = (offs + alignof(vertex) - 1) & ~(alignof(vertex) - 1);
+    offs = (offs + alignof(Vertex) - 1) & ~(alignof(Vertex) - 1);
     const size_t vertsOffs = offs;
-    offs += map->vertexNum * sizeof(vertex);
+    offs += map->vertexNum * sizeof(Vertex);
 
-    offs = (offs + alignof(sector) - 1) & ~(alignof(sector) - 1);
+    offs = (offs + alignof(Sector) - 1) & ~(alignof(Sector) - 1);
     const size_t sectorsOffs = offs;
-    offs += map->sectorNum * sizeof(sector);
+    offs += map->sectorNum * sizeof(Sector);
 
     void* mapDataBlock = NULL;
     LTC_TRY(ltc_malloc(&mapDataBlock, offs), "Failed to malloc for map data block");
 
-    map->lineDefs = (lineDef*)(mapDataBlock + linedefsOffs);
-    map->sideDefs = (sideDef*)(mapDataBlock + sidedefsOffs);
-    map->vertices = (vertex*)(mapDataBlock + vertsOffs);
-    map->sectors = (sector*)(mapDataBlock + sectorsOffs);
+    map->lineDefs = (LineDef*)(mapDataBlock + linedefsOffs);
+    map->sideDefs = (SideDef*)(mapDataBlock + sidedefsOffs);
+    map->vertices = (Vertex*)(mapDataBlock + vertsOffs);
+    map->sectors = (Sector*)(mapDataBlock + sectorsOffs);
 
     for (int lineNum = 0; lineNum < map->lineDefNum; lineNum++) {
         LTC_TRY(readLineDef(wad, &map->lineDefs[lineNum], mLumpsInfo->lineDefsEntry.lumpOffs + (lineNum * LINEDEF_SIZE_BYTES)), "failed to read DF linedef")
@@ -155,9 +155,9 @@ int readMapGeometry (FILE* wad, doomMap* map, mapLumpEntries* mLumpsInfo) {
     return ltc_success;
 }
 
-ltc_status DFreadMap(doomMap* map, wad* wad, directoryEntry mapMarkerEntry) {
+ltc_status DFreadMap(DoomMap* map, Wad* wad, DirectoryEntry mapMarkerEntry) {
 
-    mapLumpEntries mLumpEntries;
+    MapLumpEntries mLumpEntries;
     LTC_TRY(getTargetMapComposition(wad, mapMarkerEntry, &mLumpEntries), "failed to get map composition");
     LTC_TRY(readMapGeometry(wad->stream, map, &mLumpEntries), "failed to read map geometry");
 

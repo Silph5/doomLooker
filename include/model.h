@@ -9,11 +9,11 @@
 #include "vertex.h"
 
 typedef struct {
-    modelVert* verts;
+    ModelVert* verts;
     size_t vertCount;
     size_t vertCapacity;
 
-    atlas* textureAtlas;
-} mapModel;
+    Atlas* textureAtlas;
+} MapModel;
 
 #endif //DOOMLOOKER_MODEL_H

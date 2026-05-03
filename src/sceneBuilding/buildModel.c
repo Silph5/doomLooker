@@ -31,21 +31,21 @@
 #define MSG_ERROR_SIDE_ADD "Failed to add sidedef to map model"
 #define MSG_ERROR_MAP_INIT "Failed to init map model"
 
-ltc_status initMapModel(mapModel* model, size_t capacity) {
-    model->verts = malloc(sizeof(modelVert) * capacity);
-    LTC_TRY(ltc_malloc((void**)&model->verts, sizeof(modelVert) * capacity), "failed to malloc for expected vert count");
+ltc_status initMapModel(MapModel* model, size_t capacity) {
+    model->verts = malloc(sizeof(ModelVert) * capacity);
+    LTC_TRY(ltc_malloc((void**)&model->verts, sizeof(ModelVert) * capacity), "failed to malloc for expected vert count");
 
     model->vertCount = 0;
     model->vertCapacity = capacity;
     return ltc_success;
 }
 
-ltc_status addVert(mapModel* model, const modelVert* vert) {
+ltc_status addVert(MapModel* model, const ModelVert* vert) {
 
     if (model->vertCount == model->vertCapacity) {
         fprintf(stderr, "info: expected vertex capacity exceeded\n");
         size_t newCapacity = model->vertCount * 2;
-        LTC_TRY(ltc_realloc((void**)&model->verts,sizeof(modelVert) * newCapacity), "Failed to reallocate vert array");
+        LTC_TRY(ltc_realloc((void**)&model->verts,sizeof(ModelVert) * newCapacity), "Failed to reallocate vert array");
     }
 
     const size_t newVertIndex = model->vertCount;
@@ -62,9 +62,9 @@ ltc_status addVert(mapModel* model, const modelVert* vert) {
     return ltc_success;
 }
 
-ltc_status addWallFace(mapModel* model, const modelVert* blCorner, const modelVert* trCorner) {
+ltc_status addWallFace(MapModel* model, const ModelVert* blCorner, const ModelVert* trCorner) {
 
-    modelVert tlCorner;
+    ModelVert tlCorner;
     tlCorner.x = blCorner->x;
     tlCorner.z = blCorner->z;
     tlCorner.y = trCorner->y;
@@ -72,7 +72,7 @@ ltc_status addWallFace(mapModel* model, const modelVert* blCorner, const modelVe
     tlCorner.u = blCorner->u;
     tlCorner.v = trCorner->v;
 
-    modelVert brCorner;
+    ModelVert brCorner;
     brCorner.x = trCorner->x;
     brCorner.z = trCorner->z;
     brCorner.y = blCorner->y;
@@ -92,8 +92,8 @@ ltc_status addWallFace(mapModel* model, const modelVert* blCorner, const modelVe
 }
 
 
-void applyTexToSide(mapModel* model, modelVert* blVert, modelVert* trVert, const char* texName, int xOffset, int yOffset) {
-    atlasSubTexture* tex;
+void applyTexToSide(MapModel* model, ModelVert* blVert, ModelVert* trVert, const char* texName, int xOffset, int yOffset) {
+    AtlasSubTexture* tex;
     HASH_FIND(hh, model->textureAtlas->subTextures, texName, 8, tex);
     if (!tex) {
         blVert->texID = 0;
@@ -116,14 +116,14 @@ void applyTexToSide(mapModel* model, modelVert* blVert, modelVert* trVert, const
     trVert->v = yTexStart / (float) tex->height;
 }
 
-ltc_status addSide(mapModel* model, sideDef* side, const sector* sectFacing, sector* sectBehind, const vertex* v1, const vertex* v2) {
+ltc_status addSide(MapModel* model, SideDef* side, const Sector* sectFacing, Sector* sectBehind, const Vertex* v1, const Vertex* v2) {
     if (!side) {
         ltc_setArgFailSubject(2); return ltc_fail_invalid_arg;
     }
 
     //these verts are for addWallFace and are just created here to be modified and passed throughout all of this funcion
-    modelVert blVert;
-    modelVert trVert;
+    ModelVert blVert;
+    ModelVert trVert;
 
     if (!sectBehind) {
         if (side->midTexName[0] == '-') {
@@ -184,11 +184,11 @@ ltc_status addSide(mapModel* model, sideDef* side, const sector* sectFacing, sec
     return ltc_success;
 }
 
-ltc_status buildMapModel(mapModel* model, doomMap* mapData) {
+ltc_status buildMapModel(MapModel* model, DoomMap* mapData) {
 
     //texture atlas
     model->textureAtlas = NULL;
-    LTC_TRY(ltc_malloc((void**)&model->textureAtlas, sizeof(atlas)), "failed to alloc for texture atlas");
+    LTC_TRY(ltc_malloc((void**)&model->textureAtlas, sizeof(Atlas)), "failed to alloc for texture atlas");
     LTC_TRY(initAtlas(model->textureAtlas), "failed to init texture atlas");
     for (int t = 0; t < mapData->textureNum; t++) {
         LTC_TRY(addTextureToAtlas(model->textureAtlas, &mapData->textures[t]), "failed to add a texture to the texture atlas");
@@ -200,13 +200,13 @@ ltc_status buildMapModel(mapModel* model, doomMap* mapData) {
 
     //sidedefs
     for (int lineNum = 0; lineNum < mapData->lineDefNum; lineNum++) {
-        sideDef* frontSide = NULL;
-        sideDef* backSide = NULL;
-        sector* frontSector = NULL;
-        sector* backSector = NULL;
+        SideDef* frontSide = NULL;
+        SideDef* backSide = NULL;
+        Sector* frontSector = NULL;
+        Sector* backSector = NULL;
 
-        vertex* v1 = &mapData->vertices[mapData->lineDefs[lineNum].v1];
-        vertex* v2 = &mapData->vertices[mapData->lineDefs[lineNum].v2];
+        Vertex* v1 = &mapData->vertices[mapData->lineDefs[lineNum].v1];
+        Vertex* v2 = &mapData->vertices[mapData->lineDefs[lineNum].v2];
 
         if (mapData->lineDefs[lineNum].frontSideNum != 65535) {
             frontSide = &mapData->sideDefs[mapData->lineDefs[lineNum].frontSideNum];

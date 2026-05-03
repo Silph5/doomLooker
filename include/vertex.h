@@ -9,6 +9,6 @@ typedef struct {
     float x, y, z;
     float u, v;
     int texID;
-} modelVert;
+} ModelVert;
 
 #endif //DOOMLOOKER_VERTEX_H

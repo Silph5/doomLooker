@@ -6,11 +6,11 @@
 #define DOOMLOOKER_TEXTURE_H
 #include <stdint.h>
 
-typedef struct texture {
+typedef struct Texture {
     char name[8];
     int16_t width;
     int16_t height;
     uint32_t* pixels;
-} texture;
+} Texture;
 
 #endif //DOOMLOOKER_TEXTURE_H

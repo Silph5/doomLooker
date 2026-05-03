@@ -7,6 +7,6 @@
 #include "mapStruct.h"
 #include "wad.h"
 
-int DFreadMap(doomMap* map, wad* wad, directoryEntry mapMarkerEntry);
+int DFreadMap(DoomMap* map, Wad* wad, DirectoryEntry mapMarkerEntry);
 
 #endif //DOOMLOOKER_DFREAD_H

@@ -18,18 +18,18 @@ typedef struct {
     int textureIndex;
 
     UT_hash_handle hh;
-} mapTexNameHashed;
+} MapTexNameHashed;
 
 typedef struct {
     int nameCount;
     char (*names)[8];
-} namesTable;
+} NamesTable;
 
 typedef struct {
     uint8_t r, g, b;
-} doomCol;
+} DoomCol;
 
-ltc_status insertPatchToTexture(FILE* patchWadStream, directoryEntryHashed* patchEntry, texture* tex, int16_t yStart, int16_t xStart, doomCol* palette) {
+ltc_status insertPatchToTexture(FILE* patchWadStream, DirectoryEntryHashed* patchEntry, Texture* tex, int16_t yStart, int16_t xStart, DoomCol* palette) {
 
     fseek(patchWadStream, patchEntry->lumpOffs, SEEK_SET);
 
@@ -66,7 +66,7 @@ ltc_status insertPatchToTexture(FILE* patchWadStream, directoryEntryHashed* patc
                 int tX = xStart + pX;
                 int tY = yStart + topDelta + p;
 
-                doomCol curCol = palette[palIndex];
+                DoomCol curCol = palette[palIndex];
 
                 uint32_t packedCol = 0xFF << 24 | curCol.r << 16 | curCol.g << 8 | curCol.b;
 
@@ -84,7 +84,7 @@ ltc_status insertPatchToTexture(FILE* patchWadStream, directoryEntryHashed* patc
     return ltc_success;
 }
 
-ltc_status compositeTexture(wadTable* wads, FILE* tDefWadStream, texture* outTex, int offset, directoryEntryHashed* patches, namesTable* patchTable, doomCol* palette) {
+ltc_status compositeTexture(WadTable* wads, FILE* tDefWadStream, Texture* outTex, int offset, DirectoryEntryHashed* patches, NamesTable* patchTable, DoomCol* palette) {
 
     fseek(tDefWadStream, offset, SEEK_SET);
 
@@ -115,7 +115,7 @@ ltc_status compositeTexture(wadTable* wads, FILE* tDefWadStream, texture* outTex
         char patchName[8];
         memcpy(patchName, patchTable->names[patchId], 8);
 
-        directoryEntryHashed* patchEntry = NULL;
+        DirectoryEntryHashed* patchEntry = NULL;
 
         HASH_FIND(hh, patches, patchName, 8, patchEntry);
         LTC_TRY(insertPatchToTexture(wads->wadArr[patchEntry->wadIndex].stream, patchEntry, outTex, yStart, xStart, palette), "failed to insert patch to texture");
@@ -123,7 +123,7 @@ ltc_status compositeTexture(wadTable* wads, FILE* tDefWadStream, texture* outTex
     return ltc_success;
 }
 
-ltc_status readTextureDefAndCompositeUsed(wadTable *wads, int thisWadIndex, texture* textures, directoryEntry* textureDefEntry, directoryEntryHashed* patches, namesTable* patchTable, mapTexNameHashed* usedTextureTable, doomCol* palette, int* compTexCount) {
+ltc_status readTextureDefAndCompositeUsed(WadTable *wads, int thisWadIndex, Texture* textures, DirectoryEntry* textureDefEntry, DirectoryEntryHashed* patches, NamesTable* patchTable, MapTexNameHashed* usedTextureTable, DoomCol* palette, int* compTexCount) {
 
     //texture1
     int textureDefTexCount;
@@ -145,7 +145,7 @@ ltc_status readTextureDefAndCompositeUsed(wadTable *wads, int thisWadIndex, text
 
     for (int t = 0; t < textureDefTexCount; t++) {
         char nextTexName[8];
-        mapTexNameHashed *texEntry = NULL;
+        MapTexNameHashed *texEntry = NULL;
 
         fseek(tDefWadStream, textureDefEntry->lumpOffs + textureOffsets[t], SEEK_SET);
         if (fread(nextTexName, sizeof(char), 8, tDefWadStream) != 8) {
@@ -169,12 +169,12 @@ ltc_status readTextureDefAndCompositeUsed(wadTable *wads, int thisWadIndex, text
     return ltc_success;
 }
 
-ltc_status getColourPalette (FILE* wad, directoryEntry* entry, doomCol* palette) {
+ltc_status getColourPalette (FILE* wad, DirectoryEntry* entry, DoomCol* palette) {
 
     //i'm only reading the first palette from playPal, i'll try to emulate doom's shading via GLSL
     fseek(wad, entry->lumpOffs, SEEK_SET);
     for (int col = 0; col < 256; col++) {
-        if (fread(&palette[col], sizeof(doomCol), 1, wad) != 1) {
+        if (fread(&palette[col], sizeof(DoomCol), 1, wad) != 1) {
             ltc_captureErrno(errno); return ltc_fail_io;
         };
     }
@@ -190,7 +190,7 @@ void normaliseTexNameTemp(char* name) {
     }
 }
 
-ltc_status collectPNames(FILE *wad, const directoryEntry* entry, namesTable* table) {
+ltc_status collectPNames(FILE *wad, const DirectoryEntry* entry, NamesTable* table) {
 
     fseek(wad, entry->lumpOffs, SEEK_SET);
     if (fread(&table->nameCount, sizeof(int), 1, wad) != 1) {
@@ -210,7 +210,7 @@ ltc_status collectPNames(FILE *wad, const directoryEntry* entry, namesTable* tab
     return ltc_success;
 }
 
-void addUsedTexture(mapTexNameHashed** usedTexTable, const char* texName, int* outCount) {
+void addUsedTexture(MapTexNameHashed** usedTexTable, const char* texName, int* outCount) {
 
     if (texName[0] == '-' || texName[0] == '\0')
         return;
@@ -220,7 +220,7 @@ void addUsedTexture(mapTexNameHashed** usedTexTable, const char* texName, int* o
     memcpy(normTexName, texName, 8);
     //normaliseTexName(normTexName);
 
-    mapTexNameHashed *entry;
+    MapTexNameHashed *entry;
     HASH_FIND(hh, *usedTexTable, normTexName, 8, entry);
 
     if (entry == NULL) {
@@ -233,7 +233,7 @@ void addUsedTexture(mapTexNameHashed** usedTexTable, const char* texName, int* o
     }
 }
 
-void collectUsedTextures (mapTexNameHashed** usedTexTable, doomMap* map, int* outCount) {
+void collectUsedTextures (MapTexNameHashed** usedTexTable, DoomMap* map, int* outCount) {
 
     for (int sideNum = 0; sideNum < map->sideDefNum; sideNum++) {
         addUsedTexture(usedTexTable, map->sideDefs[sideNum].lowerTexName, outCount);
@@ -242,22 +242,22 @@ void collectUsedTextures (mapTexNameHashed** usedTexTable, doomMap* map, int* ou
     }
 }
 
-ltc_status getMapTextures (doomMap* map, overrideEntries* mainEntries, wadTable* wads) {
+ltc_status getMapTextures (DoomMap* map, OverrideEntries* mainEntries, WadTable* wads) {
 
-    mapTexNameHashed* usedTexTable = NULL;
+    MapTexNameHashed* usedTexTable = NULL;
 
     int texCount;
     collectUsedTextures(&usedTexTable, map, &texCount);
-    LTC_TRY(ltc_malloc((void**)&map->textures, sizeof(texture) * texCount), "failed to allocate for map textures");
+    LTC_TRY(ltc_malloc((void**)&map->textures, sizeof(Texture) * texCount), "failed to allocate for map textures");
 
-    doomCol* colPalette = NULL;
-    LTC_TRY(ltc_malloc((void**)&colPalette, sizeof(doomCol) * 256), "failed to allocate for tex colour palette");
+    DoomCol* colPalette = NULL;
+    LTC_TRY(ltc_malloc((void**)&colPalette, sizeof(DoomCol) * 256), "failed to allocate for tex colour palette");
 
     LTC_TRY(getColourPalette(wads->wadArr[mainEntries->playPal.wadIndex].stream, &mainEntries->playPal, colPalette), "failed to get tex colour palette");
 
     int compositedTexCount = 0;
     for (int w = wads->wadCount-1; w > -1; w--) {
-        namesTable pNamesTable;
+        NamesTable pNamesTable;
         if (wads->wadArr[w].uniqueLumps.pnames.lumpSize != 0) {
             LTC_TRY(collectPNames(wads->wadArr[w].stream, &wads->wadArr[w].uniqueLumps.pnames, &pNamesTable), "failed to collect patch names");
         }
@@ -270,7 +270,7 @@ ltc_status getMapTextures (doomMap* map, overrideEntries* mainEntries, wadTable*
 
     map->textureNum = compositedTexCount;
 
-    texture* temp = realloc(map->textures,sizeof(texture) * map->textureNum);
+    Texture* temp = realloc(map->textures,sizeof(Texture) * map->textureNum);
     if (temp) {map->textures = temp;}
 
     free(colPalette);

@@ -9,5 +9,5 @@
 #include "mapStruct.h"
 #include "model.h"
 
-ltc_status buildMapModel(mapModel* model, doomMap* mapData);
+ltc_status buildMapModel(MapModel* model, DoomMap* mapData);
 #endif //DOOMLOOKER_BUILDMODEL_H

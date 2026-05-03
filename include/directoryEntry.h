@@ -12,7 +12,7 @@
 typedef enum {
     DOOMformat,
     UDMF
-} mapFormat;
+} MapFormat;
 
 typedef struct {
     int lumpOffs;
@@ -20,7 +20,7 @@ typedef struct {
     char lumpName[8];
     int wadIndex;
     int entryNum;
-} directoryEntry;
+} DirectoryEntry;
 
 typedef struct {
     int lumpOffs;
@@ -30,19 +30,19 @@ typedef struct {
     int entryNum;
 
     UT_hash_handle hh;
-} directoryEntryHashed;
+} DirectoryEntryHashed;
 
 typedef struct {
 
-    directoryEntryHashed* patches;
-    directoryEntry playPal;
+    DirectoryEntryHashed* patches;
+    DirectoryEntry playPal;
 
-    directoryEntry mapMarkerEntry;
-    mapFormat mapFormat;
+    DirectoryEntry mapMarkerEntry;
+    MapFormat mapFormat;
 
-} overrideEntries;
+} OverrideEntries;
 
-ltc_status readDirectoryEntry(FILE *wad, directoryEntry *outEntry, int *entryNum);
+ltc_status readDirectoryEntry(FILE *wad, DirectoryEntry *outEntry, int *entryNum);
 
 void skipEntries (FILE* wad, int skipCount, int* outEntryNum);
 

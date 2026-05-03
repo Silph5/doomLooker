@@ -29,9 +29,9 @@ ltc_status readWadHeader(FILE* wadStream, int* outLumpCount, int* outDirOffset) 
     return ltc_success;
 }
 
-int readEntriesBetweenMarkersToHashTable (wad* wad, directoryEntryHashed** entryHashTable, const char* endMarker, const int eMcharCount, int wadIndex, int* outEntryNum) {
+int readEntriesBetweenMarkersToHashTable (Wad* wad, DirectoryEntryHashed** entryHashTable, const char* endMarker, const int eMcharCount, int wadIndex, int* outEntryNum) {
 
-    directoryEntry tempEntry;
+    DirectoryEntry tempEntry;
 
     do {
         readDirectoryEntry(wad->stream, &tempEntry, outEntryNum);
@@ -44,7 +44,7 @@ int readEntriesBetweenMarkersToHashTable (wad* wad, directoryEntryHashed** entry
             continue;
         }
 
-        directoryEntryHashed* newHashEntry = malloc(sizeof(directoryEntryHashed));
+        DirectoryEntryHashed* newHashEntry = malloc(sizeof(DirectoryEntryHashed));
 
         newHashEntry->lumpOffs = tempEntry.lumpOffs;
         newHashEntry->lumpSize = tempEntry.lumpSize;
@@ -61,11 +61,11 @@ int readEntriesBetweenMarkersToHashTable (wad* wad, directoryEntryHashed** entry
     return 0;
 }
 
-ltc_status collectDirectoryEntries(wad* wad, int wadIndex, overrideEntries* mainEntries, const char* targetMapName) {
+ltc_status collectDirectoryEntries(Wad* wad, int wadIndex, OverrideEntries* mainEntries, const char* targetMapName) {
 
     fseek(wad->stream, wad->dirOffset, SEEK_SET);
 
-    directoryEntry tempEntry;
+    DirectoryEntry tempEntry;
     tempEntry.wadIndex = wadIndex;
 
     for (int entryNum = 0; entryNum < wad->lumpCount;) {
@@ -100,12 +100,12 @@ ltc_status collectDirectoryEntries(wad* wad, int wadIndex, overrideEntries* main
     return ltc_success;
 }
 
-ltc_status determineMapFormat(wadTable* wads, directoryEntry mapMarkerEntry, mapFormat* outFormat) {
-    wad entryWad = wads->wadArr[mapMarkerEntry.wadIndex];
+ltc_status determineMapFormat(WadTable* wads, DirectoryEntry mapMarkerEntry, MapFormat* outFormat) {
+    Wad entryWad = wads->wadArr[mapMarkerEntry.wadIndex];
     int entryNum = mapMarkerEntry.entryNum + 1;
     goToEntryByNum(entryWad.stream, entryWad.dirOffset, entryNum);
 
-    directoryEntry tempEntry;
+    DirectoryEntry tempEntry;
     readDirectoryEntry(entryWad.stream, &tempEntry, &entryNum);
 
     if (strncmp(tempEntry.lumpName, "THINGS", 6) == 0) {
@@ -119,24 +119,24 @@ ltc_status determineMapFormat(wadTable* wads, directoryEntry mapMarkerEntry, map
     return ltc_fail;
 }
 
-ltc_status initWad(const char* wadPath, wad* outWad) {
+ltc_status initWad(const char* wadPath, Wad* outWad) {
     LTC_TRY(ltc_fopen(&outWad->stream, wadPath, "rb"), "Failed to open wad file");
-    LTC_TRY(ltc_malloc((void**)&outWad->uniqueLumps.textureXentries, sizeof(directoryEntry) * MAX_TEXTUREX_EXPECTED), "failed to malloc for textureX lumps");
+    LTC_TRY(ltc_malloc((void**)&outWad->uniqueLumps.textureXentries, sizeof(DirectoryEntry) * MAX_TEXTUREX_EXPECTED), "failed to malloc for textureX lumps");
     LTC_TRY(readWadHeader(outWad->stream, &outWad->lumpCount, &outWad->dirOffset), "failed to read wad header");
 
     return ltc_success;
 }
 
-ltc_status readWadsToDoomMapData (doomMap* map, char* mapName, char** wadPaths, const int wadCount) {
+ltc_status readWadsToDoomMapData (DoomMap* map, char* mapName, char** wadPaths, const int wadCount) {
 
-    wadTable wads;
+    WadTable wads;
     wads.wadCount = wadCount;
-    wads.wadArr = calloc(wadCount,sizeof(wad));
+    wads.wadArr = calloc(wadCount,sizeof(Wad));
     if (!wads.wadArr) {
         return ltc_fail_no_mem; //clang insists there's a leak here, i have no idea why
     }
 
-    overrideEntries mainEntries = {0};
+    OverrideEntries mainEntries = {0};
     for (int w = 0; w < wadCount; w++) {
         LTC_TRY(initWad(wadPaths[w], &wads.wadArr[w]), "failed to init a wad");
         LTC_TRY(collectDirectoryEntries(&wads.wadArr[w], w, &mainEntries, mapName), "failed to collect a wad's dir entries");
@@ -156,7 +156,7 @@ ltc_status readWadsToDoomMapData (doomMap* map, char* mapName, char** wadPaths, 
     return ltc_success;
 }
 
-void freeDoomMapData(doomMap* map) {
+void freeDoomMapData(DoomMap* map) {
     free(map->lineDefs);
     free(map->sectors);
     free(map->sideDefs);

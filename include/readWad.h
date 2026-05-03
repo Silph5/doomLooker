@@ -7,8 +7,8 @@
 #include "mapStruct.h"
 
 
-doomMap* readWadToMapData(const char* wadPath, char* mapName);
+DoomMap* readWadToMapData(const char* wadPath, char* mapName);
 
-void freeDoomMapData(doomMap* map);
+void freeDoomMapData(DoomMap* map);
 
 #endif //DOOMLOOKER_READWAD_H

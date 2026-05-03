@@ -16,7 +16,7 @@ typedef struct {
     uint16_t height;
     uint16_t yOffset;
     uint16_t nextOriginX;
-} atlasShelf;
+} AtlasShelf;
 
 typedef struct {
     char name[8]; //hash table key
@@ -29,27 +29,27 @@ typedef struct {
     int UVindex;
 
     UT_hash_handle hh;
-} atlasSubTexture;
+} AtlasSubTexture;
 
 typedef struct {
     uint32_t* pixels;
     uint16_t height;
     uint16_t width;
 
-    atlasShelf bottomShelf; //to track where to insert textures and when to create a new shelf
+    AtlasShelf bottomShelf; //to track where to insert textures and when to create a new shelf
 
-    atlasSubTexture* subTextures;
+    AtlasSubTexture* subTextures;
     int subTexCount;
 
     float* subTUVS;
-} atlas;
+} Atlas;
 
-ltc_status initAtlas (atlas* atlas);
+ltc_status initAtlas (Atlas* atlas);
 
-ltc_status addTextureToAtlas(atlas* atlas, const texture* texture);
+ltc_status addTextureToAtlas(Atlas* atlas, const Texture* texture);
 
-ltc_status bakeAtlasUVs(atlas* atlas);
+ltc_status bakeAtlasUVs(Atlas* atlas);
 
-void exportAtlas(atlas* atlas);
+void exportAtlas(Atlas* atlas);
 
 #endif //DOOMLOOKER_ATLAS_H
