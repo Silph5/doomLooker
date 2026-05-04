@@ -11,9 +11,14 @@ typedef struct {
 } LineNode;
 
 typedef struct {
+    int16_t vertNum;
+    int nextNodeI;
+} VertNode;
+
+typedef struct {
     int headNodeI;
     int tailNodeI;
-} LinkedLineList;
+} IndexedLinkedList;
 
 typedef struct {
     LineNode* nodeArr;
@@ -22,7 +27,13 @@ typedef struct {
 } LineNodePool;
 
 typedef struct {
-    LinkedLineList* lineGroups;
+    VertNode* nodeArr;
+    int nodeCount;
+    int capacity;
+} VertNodePool;
+
+typedef struct {
+    IndexedLinkedList* lineGroups;
     int lineGroupCount;
     int lineGroupCapacity;
 } SectorPoly;
