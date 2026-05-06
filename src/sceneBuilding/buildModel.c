@@ -14,8 +14,7 @@
 #include "mapComponentStructs.h"
 #include "texture.h"
 #include "atlas.h"
-
-
+#include "sectorPoly.h"
 
 
 #define TRY(func, onError, errorMsg) do { \
@@ -194,6 +193,11 @@ ltc_status buildMapModel(MapModel* model, DoomMap* mapData) {
         LTC_TRY(addTextureToAtlas(model->textureAtlas, &mapData->textures[t]), "failed to add a texture to the texture atlas");
     }
     LTC_TRY(bakeAtlasUVs(model->textureAtlas), "failed to bake atlas UVs");
+
+    //init poly builder
+    SectorPolyBuilder* polyBuilder = NULL;
+    LTC_TRY(ltc_malloc((void**)&polyBuilder, sizeof(Atlas)), "failed to alloc for poly build data");
+    LTC_TRY(initSectorPolyBuilder(polyBuilder, mapData), "Failed to init poly builder");
 
     //temporarily only init for max sidedef verts until sectors added
     LTC_TRY(initMapModel(model, mapData->sideDefNum * 18), "failed to init map model");
