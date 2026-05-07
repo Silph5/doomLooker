@@ -14,6 +14,6 @@ typedef struct NodePool NodePool;
 typedef struct SectorPoly SectorPoly;
 typedef struct SectorPolyBuilder SectorPolyBuilder;
 
-ltc_status initSectorPolyBuilder(SectorPolyBuilder* polyBuildData, DoomMap* mapData);
+ltc_status initSectorPolyBuilder(SectorPolyBuilder* polyBuildData, const DoomMap* mapData);
 
 #endif //DOOMLOOKER_SECTORPOLY_H

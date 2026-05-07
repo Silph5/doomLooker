@@ -52,7 +52,7 @@ void initSectorPoly (SectorPoly* poly) {
     poly->headList.list.tailNodeI = -1;
 }
 
-ltc_status initSectorPolyBuilder(SectorPolyBuilder* polyBuildData, DoomMap* mapData) {
+ltc_status initSectorPolyBuilder(SectorPolyBuilder* polyBuildData, const DoomMap* mapData) {
     LTC_TRY(ltc_malloc((void**)&polyBuildData->sectorPolys, sizeof(SectorPoly) * mapData->sectorNum), "Failed to malloc for sector polys");
     for (int p = 0; p < mapData->sectorNum; p++) {
         initSectorPoly(&polyBuildData->sectorPolys[p]);
@@ -63,5 +63,25 @@ ltc_status initSectorPolyBuilder(SectorPolyBuilder* polyBuildData, DoomMap* mapD
     LTC_TRY(ltc_malloc((void**)&polyBuildData->connectionListPool.nodeArr, sizeof(LinkedListNode) * INITIAL_LISTS_PER_POLY * mapData->sectorNum), "failed to malloc for linked list pool");
     polyBuildData->connectionListPool.capacity = mapData->sectorNum * INITIAL_LISTS_PER_POLY;
 
+    return ltc_success;
+}
+
+ltc_status getNewNodeIndex (int* out, NodePool* pool) {
+    if (pool->capacity <= pool->nodeCount) {
+        pool->capacity *= 2;
+        LTC_TRY(ltc_realloc((void**)&pool->nodeArr, sizeof(IndexNode) * pool->capacity), "failed to expand (realloc) poly node pool")
+    }
+
+    *out = pool->nodeCount;
+    return ltc_success;
+}
+
+ltc_status getNewLListIndex (int* out, LinkedListPool* pool) {
+    if (pool->capacity <= pool->nodeCount) {
+        pool->capacity *= 2;
+        LTC_TRY(ltc_realloc((void**)&pool->nodeArr, sizeof(IndexNode) * pool->capacity), "failed to expand (realloc) linked list pool")
+    }
+
+    *out = pool->nodeCount;
     return ltc_success;
 }
