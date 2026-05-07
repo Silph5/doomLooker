@@ -73,6 +73,7 @@ ltc_status getNewNodeIndex (int* out, NodePool* pool) {
     }
 
     *out = pool->nodeCount;
+    pool->nodeCount++;
     return ltc_success;
 }
 
@@ -83,5 +84,6 @@ ltc_status getNewLListIndex (int* out, LinkedListPool* pool) {
     }
 
     *out = pool->nodeCount;
+    pool->nodeCount++;
     return ltc_success;
 }
