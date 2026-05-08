@@ -6,7 +6,7 @@
 #include "mapComponentStructs.h"
 
 typedef struct {
-    int16_t indexVal;
+    int indexVal;
     int nextNodeI;
 } IndexNode;
 
@@ -85,5 +85,18 @@ ltc_status getNewLListIndex (int* out, LinkedListPool* pool) {
 
     *out = pool->nodeCount;
     pool->nodeCount++;
+    return ltc_success;
+}
+
+ltc_status addLinedefToPoly(SectorPolyBuilder* polyBuildData, LineDef* linedef, int lineI, int sectorI) {
+    SectorPoly* poly = &polyBuildData->sectorPolys[sectorI];
+    LinkedListNode* curListNode = &poly->headList;
+    if (curListNode->list.headNodeI == -1) {
+        int newI = 0;
+        LTC_TRY(getNewNodeIndex(&newI, &polyBuildData->indexNodePool), "failed to get a new node index")
+        curListNode->list.headNodeI = newI;
+        curListNode->list.tailNodeI = newI;
+        polyBuildData->indexNodePool.nodeArr[newI].indexVal = lineI;
+    }
     return ltc_success;
 }
