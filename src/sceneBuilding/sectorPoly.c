@@ -3,6 +3,9 @@
 //
 
 #include "../../include/sectorPoly.h"
+
+#include <stdbool.h>
+
 #include "mapComponentStructs.h"
 
 typedef struct {
@@ -88,7 +91,14 @@ ltc_status getNewLListIndex (int* out, LinkedListPool* pool) {
     return ltc_success;
 }
 
-ltc_status addLinedefToPoly(SectorPolyBuilder* polyBuildData, LineDef* linedef, int lineI, int sectorI) {
+bool linesAreConnected (LineDef* line1, LineDef* line2) {
+    if (line1->v1 == line2->v1 || line1->v1 == line2->v2 || line1->v2 == line2->v1 || line1->v2 == line2->v2) {
+        return true;
+    }
+    return false;
+}
+
+ltc_status addLinedefToPoly(SectorPolyBuilder* polyBuildData, DoomMap* mapData, int lineI, int sectorI) {
     SectorPoly* poly = &polyBuildData->sectorPolys[sectorI];
     LinkedListNode* curListNode = &poly->headList;
     if (curListNode->list.headNodeI == -1) {
@@ -97,6 +107,8 @@ ltc_status addLinedefToPoly(SectorPolyBuilder* polyBuildData, LineDef* linedef, 
         curListNode->list.headNodeI = newI;
         curListNode->list.tailNodeI = newI;
         polyBuildData->indexNodePool.nodeArr[newI].indexVal = lineI;
+        return ltc_success;
     }
+
     return ltc_success;
 }
