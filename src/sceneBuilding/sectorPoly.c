@@ -101,14 +101,27 @@ bool linesAreConnected (LineDef* line1, LineDef* line2) {
 ltc_status addLinedefToPoly(SectorPolyBuilder* polyBuildData, DoomMap* mapData, int lineI, int sectorI) {
     SectorPoly* poly = &polyBuildData->sectorPolys[sectorI];
     LinkedListNode* curListNode = &poly->headList;
-    if (curListNode->list.headNodeI == -1) {
-        int newI = 0;
-        LTC_TRY(getNewNodeIndex(&newI, &polyBuildData->indexNodePool), "failed to get a new node index")
-        curListNode->list.headNodeI = newI;
-        curListNode->list.tailNodeI = newI;
-        polyBuildData->indexNodePool.nodeArr[newI].indexVal = lineI;
-        return ltc_success;
+    int newNodeI = 0;
+    LTC_TRY(getNewNodeIndex(&newNodeI, &polyBuildData->indexNodePool), "failed to get a new node index")
+    polyBuildData->indexNodePool.nodeArr[newNodeI].indexVal = lineI;
+
+    while (curListNode->nextListNodeI != -1) {
+        if (curListNode->list.headNodeI == -1) {
+            curListNode->list.headNodeI = newNodeI;
+            curListNode->list.tailNodeI = newNodeI;
+            return ltc_success;
+        }
+
+        if (linesAreConnected(&mapData->lineDefs[polyBuildData->indexNodePool.nodeArr[curListNode->list.headNodeI].indexVal], &mapData->lineDefs[lineI])) {
+            polyBuildData->indexNodePool.nodeArr[newNodeI].nextNodeI = curListNode->list.headNodeI;
+            curListNode->list.headNodeI = newNodeI;
+        }
+
+        if (linesAreConnected(&mapData->lineDefs[polyBuildData->indexNodePool.nodeArr[curListNode->list.tailNodeI].indexVal], &mapData->lineDefs[lineI])) {
+            polyBuildData->indexNodePool.nodeArr[curListNode->list.tailNodeI].nextNodeI = newNodeI;
+        }
     }
+
 
     return ltc_success;
 }
