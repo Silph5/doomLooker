@@ -4,6 +4,7 @@
 
 #include "../../include/sectorPoly.h"
 
+#include <bemapiset.h>
 #include <stdbool.h>
 
 #include "mapComponentStructs.h"
@@ -105,7 +106,8 @@ ltc_status addLinedefToPoly(SectorPolyBuilder* polyBuildData, DoomMap* mapData, 
     LTC_TRY(getNewNodeIndex(&newNodeI, &polyBuildData->indexNodePool), "failed to get a new node index")
     polyBuildData->indexNodePool.nodeArr[newNodeI].indexVal = lineI;
 
-    while (curListNode->nextListNodeI != -1) {
+    bool reachedListEnd = false;
+    while (!reachedListEnd) {
         if (curListNode->list.headNodeI == -1) {
             curListNode->list.headNodeI = newNodeI;
             curListNode->list.tailNodeI = newNodeI;
@@ -115,10 +117,18 @@ ltc_status addLinedefToPoly(SectorPolyBuilder* polyBuildData, DoomMap* mapData, 
         if (linesAreConnected(&mapData->lineDefs[polyBuildData->indexNodePool.nodeArr[curListNode->list.headNodeI].indexVal], &mapData->lineDefs[lineI])) {
             polyBuildData->indexNodePool.nodeArr[newNodeI].nextNodeI = curListNode->list.headNodeI;
             curListNode->list.headNodeI = newNodeI;
+            return ltc_success;
         }
 
         if (linesAreConnected(&mapData->lineDefs[polyBuildData->indexNodePool.nodeArr[curListNode->list.tailNodeI].indexVal], &mapData->lineDefs[lineI])) {
             polyBuildData->indexNodePool.nodeArr[curListNode->list.tailNodeI].nextNodeI = newNodeI;
+            return ltc_success;
+        }
+
+        if (curListNode->nextListNodeI == -1) {
+            reachedListEnd = true;
+        } else {
+            curListNode = &polyBuildData->connectionListPool.nodeArr[curListNode->nextListNodeI];
         }
     }
 
