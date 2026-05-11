@@ -8,6 +8,9 @@
 #include <math.h>
 
 #include "../../include/buildModel.h"
+
+#include <stdbool.h>
+
 #include "vertex.h"
 
 #include "mapStruct.h"
@@ -204,6 +207,7 @@ ltc_status buildMapModel(MapModel* model, DoomMap* mapData) {
 
     //sidedefs
     for (int lineNum = 0; lineNum < mapData->lineDefNum; lineNum++) {
+        bool isSectorEdge = false;
         SideDef* frontSide = NULL;
         SideDef* backSide = NULL;
         Sector* frontSector = NULL;
@@ -221,14 +225,26 @@ ltc_status buildMapModel(MapModel* model, DoomMap* mapData) {
             backSector = &mapData->sectors[backSide->sectFacing];
         }
 
+        if (mapData->lineDefs[lineNum].frontSideNum != mapData->lineDefs[lineNum].backSideNum) {
+            isSectorEdge = true;
+        }
+
         if (frontSide) {
             LTC_TRY(addSide(model, frontSide, frontSector, backSector, v1, v2), MSG_ERROR_SIDE_ADD);
+            if (isSectorEdge) {
+                addLinedefToPoly(polyBuilder, mapData, lineNum, mapData->sideDefs[mapData->lineDefs[lineNum].frontSideNum].sectFacing);
+            }
         }
 
         if (backSide) {
             LTC_TRY(addSide(model, backSide, backSector, frontSector, v2, v1), MSG_ERROR_SIDE_ADD);
+            if (isSectorEdge) {
+                addLinedefToPoly(polyBuilder, mapData, lineNum, mapData->sideDefs[mapData->lineDefs[lineNum].backSideNum].sectFacing);
+            }
         }
     }
+
+    //printConnectionLists(polyBuilder, 0);
 
     return ltc_success;
 }

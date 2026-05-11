@@ -122,6 +122,7 @@ ltc_status addLinedefToPoly(SectorPolyBuilder* polyBuildData, DoomMap* mapData, 
 
         if (linesAreConnected(&mapData->lineDefs[polyBuildData->indexNodePool.nodeArr[curListNode->list.tailNodeI].indexVal], &mapData->lineDefs[lineI])) {
             polyBuildData->indexNodePool.nodeArr[curListNode->list.tailNodeI].nextNodeI = newNodeI;
+            polyBuildData->indexNodePool.nodeArr[newNodeI].nextNodeI = -1;
             return ltc_success;
         }
 
@@ -139,4 +140,35 @@ ltc_status addLinedefToPoly(SectorPolyBuilder* polyBuildData, DoomMap* mapData, 
     polyBuildData->connectionListPool.nodeArr[newListI].list.tailNodeI = newNodeI;
 
     return ltc_success;
+}
+
+//for debug only
+void printConnectionLists(SectorPolyBuilder* polyBuildData, int polyI) {
+    SectorPoly* poly = &polyBuildData->sectorPolys[polyI];
+    LinkedListNode* curListNode = &poly->headList;
+    int listCount = 0;
+    bool reachedListEnd = false;
+    printf("Printing sector poly lists for sector num %i", polyI);
+    while (!reachedListEnd) {
+        printf("CONNECTION LIST %i\n", listCount);
+
+        bool reachedConnectionListEnd = false;
+        IndexNode* curNode = &polyBuildData->indexNodePool.nodeArr[curListNode->list.headNodeI];
+        while (!reachedConnectionListEnd) {
+            printf("%i -> ", curNode->indexVal);
+            if (curNode->indexVal == -1) {
+                reachedConnectionListEnd = true;
+                printf("\n\n");
+            } else {
+                curNode = &polyBuildData->indexNodePool.nodeArr[curNode->nextNodeI];
+            }
+        }
+        if (curListNode->nextListNodeI == -1) {
+            reachedListEnd = true;
+        } else {
+            curListNode = &polyBuildData->connectionListPool.nodeArr[curListNode->nextListNodeI];
+            listCount++;
+        }
+    }
+
 }
