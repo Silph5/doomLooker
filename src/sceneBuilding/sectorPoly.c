@@ -56,16 +56,36 @@ void initSectorPoly (SectorPoly* poly) {
     poly->headList.list.tailNodeI = -1;
 }
 
+void initListNode (LinkedListNode* node) {
+    node->list.headNodeI = -1;
+    node->list.tailNodeI = -1;
+    node->nextListNodeI = -1;
+}
+
+void initIndexNode (IndexNode* node) {
+    node->indexVal = 0;
+    node->nextNodeI = -1;
+}
+
 ltc_status initSectorPolyBuilder(SectorPolyBuilder* polyBuildData, const DoomMap* mapData) {
     LTC_TRY(ltc_malloc((void**)&polyBuildData->sectorPolys, sizeof(SectorPoly) * mapData->sectorNum), "Failed to malloc for sector polys");
     for (int p = 0; p < mapData->sectorNum; p++) {
         initSectorPoly(&polyBuildData->sectorPolys[p]);
     }
+
     LTC_TRY(ltc_malloc((void**)&polyBuildData->indexNodePool.nodeArr, sizeof(IndexNode) * INITIAL_NODES_PER_POLY * mapData->sectorNum), "Failed to malloc for node pool");
     polyBuildData->indexNodePool.capacity = mapData->sectorNum * INITIAL_NODES_PER_POLY;
+    for (int n = 0; n < polyBuildData->indexNodePool.capacity; n++) {
+        initIndexNode(&polyBuildData->indexNodePool.nodeArr[n]);
+    }
+    polyBuildData->indexNodePool.nodeCount = 0;
 
     LTC_TRY(ltc_malloc((void**)&polyBuildData->connectionListPool.nodeArr, sizeof(LinkedListNode) * INITIAL_LISTS_PER_POLY * mapData->sectorNum), "failed to malloc for linked list pool");
     polyBuildData->connectionListPool.capacity = mapData->sectorNum * INITIAL_LISTS_PER_POLY;
+    for (int l = 0; l < polyBuildData->connectionListPool.capacity; l++) {
+        initListNode(&polyBuildData->connectionListPool.nodeArr[l]);
+    }
+    polyBuildData->connectionListPool.nodeCount = 0;
 
     return ltc_success;
 }

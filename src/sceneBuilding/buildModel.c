@@ -244,7 +244,7 @@ ltc_status buildMapModel(MapModel* model, DoomMap* mapData) {
         }
     }
 
-    //printConnectionLists(polyBuilder, 0);
+    printConnectionLists(polyBuilder, 0);
 
     return ltc_success;
 }
