@@ -168,7 +168,7 @@ void printConnectionLists(SectorPolyBuilder* polyBuildData, int polyI) {
     LinkedListNode* curListNode = &poly->headList;
     int listCount = 0;
     bool reachedListEnd = false;
-    printf("Printing sector poly lists for sector num %i", polyI);
+    printf("Printing sector poly lists for sector num %i\n", polyI);
     while (!reachedListEnd) {
         printf("CONNECTION LIST %i\n", listCount);
 
@@ -176,9 +176,9 @@ void printConnectionLists(SectorPolyBuilder* polyBuildData, int polyI) {
         IndexNode* curNode = &polyBuildData->indexNodePool.nodeArr[curListNode->list.headNodeI];
         while (!reachedConnectionListEnd) {
             printf("%i -> ", curNode->indexVal);
-            if (curNode->indexVal == -1) {
+            if (curNode->nextNodeI == -1) {
                 reachedConnectionListEnd = true;
-                printf("\n\n");
+                printf("end\n\n");
             } else {
                 curNode = &polyBuildData->indexNodePool.nodeArr[curNode->nextNodeI];
             }
