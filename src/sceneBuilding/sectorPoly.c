@@ -132,6 +132,11 @@ ltc_status addLinedefToPoly(SectorPolyBuilder* polyBuildData, DoomMap* mapData, 
         }
     }
 
+    int newListI = 0;
+    LTC_TRY(getNewLListIndex(&newListI, &polyBuildData->connectionListPool), "failed to get new list index")
+    curListNode->nextListNodeI = newListI;
+    polyBuildData->connectionListPool.nodeArr[newListI].list.headNodeI = newNodeI;
+    polyBuildData->connectionListPool.nodeArr[newListI].list.tailNodeI = newNodeI;
 
     return ltc_success;
 }
