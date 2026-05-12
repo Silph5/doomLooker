@@ -166,6 +166,59 @@ ltc_status addLinedefToPoly(SectorPolyBuilder* polyBuildData, DoomMap* mapData, 
     return ltc_success;
 }
 
+ltc_status fullCombinePolyLines(SectorPolyBuilder* polyBuildData, DoomMap* mapData, int sectorI) {
+    SectorPoly poly = polyBuildData->sectorPolys[sectorI];
+    LinkedListNode* curCombiningListNode = &poly.headList;
+
+    bool reachedConnectionListsEnd = false;
+    while (!reachedConnectionListsEnd) {
+
+        if (curCombiningListNode->nextListNodeI == -1) {
+            reachedConnectionListsEnd = true;
+            continue;
+        }
+
+        LinkedListNode* aheadListNode = &polyBuildData->connectionListPool.nodeArr[curCombiningListNode->nextListNodeI];
+
+        bool reachedSubConnectionListsEnd = false;
+        LinkedListNode* checkingNode = aheadListNode;
+        while (!reachedSubConnectionListsEnd) {
+
+            //TODO: REWIRE LINKED LISTS SO THAT A NODE LIST WHICH HAS BEEN COMBINED INTO A LARGER LIST IS NO LONGER PART OF THE CONNECTION LIST
+            if (linesAreConnected(&mapData->lineDefs[polyBuildData->indexNodePool.nodeArr[checkingNode->list.tailNodeI].indexVal],
+                &mapData->lineDefs[polyBuildData->indexNodePool.nodeArr[curCombiningListNode->list.headNodeI].indexVal])) {
+                polyBuildData->indexNodePool.nodeArr[checkingNode->list.tailNodeI].nextNodeI = curCombiningListNode->list.headNodeI;
+                checkingNode->list.tailNodeI = curCombiningListNode->list.tailNodeI;
+                curCombiningListNode->list.headNodeI = -1;
+                curCombiningListNode->list.tailNodeI = -1;
+                break;
+            }
+            if (linesAreConnected(&mapData->lineDefs[polyBuildData->indexNodePool.nodeArr[checkingNode->list.headNodeI].indexVal],
+                &mapData->lineDefs[polyBuildData->indexNodePool.nodeArr[curCombiningListNode->list.tailNodeI].indexVal])) {
+                polyBuildData->indexNodePool.nodeArr[curCombiningListNode->list.tailNodeI].nextNodeI = checkingNode->list.headNodeI;
+                curCombiningListNode->list.tailNodeI = checkingNode->list.tailNodeI;
+                checkingNode->list.headNodeI = -1;
+                checkingNode->list.tailNodeI = -1;
+                break;
+            }
+
+            //TODO: HEAD + HEAD CONNECTION, TAIL + TAIL CONNECTION
+            //this will be fun.
+
+            if (checkingNode->nextListNodeI == -1) {
+                reachedSubConnectionListsEnd = true;
+            } else {
+                checkingNode = &polyBuildData->connectionListPool.nodeArr[checkingNode->nextListNodeI];
+            }
+        }
+
+        curCombiningListNode = aheadListNode;
+
+    }
+
+    return ltc_success;
+}
+
 //for debug only
 void printConnectionLists(SectorPolyBuilder* polyBuildData, int polyI) {
     SectorPoly* poly = &polyBuildData->sectorPolys[polyI];
