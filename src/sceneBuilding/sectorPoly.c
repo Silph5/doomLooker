@@ -47,7 +47,7 @@ struct SectorPolyBuilder{
 };
 
 //guesses as to maximum/average needed
-#define INITIAL_LISTS_PER_POLY 3
+#define INITIAL_LISTS_PER_POLY 5
 #define INITIAL_NODES_PER_POLY 8
 
 void initSectorPoly (SectorPoly* poly) {
@@ -92,6 +92,7 @@ ltc_status initSectorPolyBuilder(SectorPolyBuilder* polyBuildData, const DoomMap
 
 ltc_status getNewNodeIndex (int* out, NodePool* pool) {
     if (pool->capacity <= pool->nodeCount) {
+        printf("sectorPoly.c - expected line index node capacity exceeded\n");
         pool->capacity *= 2;
         LTC_TRY(ltc_realloc((void**)&pool->nodeArr, sizeof(IndexNode) * pool->capacity), "failed to expand (realloc) poly node pool")
     }
@@ -103,6 +104,9 @@ ltc_status getNewNodeIndex (int* out, NodePool* pool) {
 
 ltc_status getNewLListIndex (int* out, LinkedListPool* pool) {
     if (pool->capacity <= pool->nodeCount) {
+        printf("sectorPoly.c - expected linked list node capacity exceeded\n");  //a crash occurs when re-allocing the linked list node pool,
+                                                                        //i'm not sure why this happens yet,
+                                                                        //but the capacity is rarely exceeded so i'll leave it be temporarily
         pool->capacity *= 2;
         LTC_TRY(ltc_realloc((void**)&pool->nodeArr, sizeof(IndexNode) * pool->capacity), "failed to expand (realloc) linked list pool")
     }
