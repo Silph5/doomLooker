@@ -37,7 +37,7 @@ struct LinkedListPool {
 };
 
 struct SectorPoly{
-    LinkedListNode headList;
+    int headListI;
 };
 
 struct SectorPolyBuilder{
@@ -45,50 +45,6 @@ struct SectorPolyBuilder{
     NodePool indexNodePool;
     SectorPoly* sectorPolys;
 };
-
-//guesses as to maximum/average needed
-#define INITIAL_LISTS_PER_POLY 5
-#define INITIAL_NODES_PER_POLY 8
-
-void initSectorPoly (SectorPoly* poly) {
-    poly->headList.nextListNodeI = -1;
-    poly->headList.list.headNodeI = -1;
-    poly->headList.list.tailNodeI = -1;
-}
-
-void initListNode (LinkedListNode* node) {
-    node->list.headNodeI = -1;
-    node->list.tailNodeI = -1;
-    node->nextListNodeI = -1;
-}
-
-void initIndexNode (IndexNode* node) {
-    node->indexVal = 0;
-    node->nextNodeI = -1;
-}
-
-ltc_status initSectorPolyBuilder(SectorPolyBuilder* polyBuildData, const DoomMap* mapData) {
-    LTC_TRY(ltc_malloc((void**)&polyBuildData->sectorPolys, sizeof(SectorPoly) * mapData->sectorNum), "Failed to malloc for sector polys");
-    for (int p = 0; p < mapData->sectorNum; p++) {
-        initSectorPoly(&polyBuildData->sectorPolys[p]);
-    }
-
-    LTC_TRY(ltc_malloc((void**)&polyBuildData->indexNodePool.nodeArr, sizeof(IndexNode) * INITIAL_NODES_PER_POLY * mapData->sectorNum), "Failed to malloc for node pool");
-    polyBuildData->indexNodePool.capacity = mapData->sectorNum * INITIAL_NODES_PER_POLY;
-    for (int n = 0; n < polyBuildData->indexNodePool.capacity; n++) {
-        initIndexNode(&polyBuildData->indexNodePool.nodeArr[n]);
-    }
-    polyBuildData->indexNodePool.nodeCount = 0;
-
-    LTC_TRY(ltc_malloc((void**)&polyBuildData->connectionListPool.nodeArr, sizeof(LinkedListNode) * INITIAL_LISTS_PER_POLY * mapData->sectorNum), "failed to malloc for linked list pool");
-    polyBuildData->connectionListPool.capacity = mapData->sectorNum * INITIAL_LISTS_PER_POLY;
-    for (int l = 0; l < polyBuildData->connectionListPool.capacity; l++) {
-        initListNode(&polyBuildData->connectionListPool.nodeArr[l]);
-    }
-    polyBuildData->connectionListPool.nodeCount = 0;
-
-    return ltc_success;
-}
 
 ltc_status getNewNodeIndex (int* out, NodePool* pool) {
     if (pool->capacity <= pool->nodeCount) {
@@ -105,14 +61,57 @@ ltc_status getNewNodeIndex (int* out, NodePool* pool) {
 ltc_status getNewLListIndex (int* out, LinkedListPool* pool) {
     if (pool->capacity <= pool->nodeCount) {
         printf("sectorPoly.c - expected linked list node capacity exceeded\n");  //a crash occurs when re-allocing the linked list node pool,
-                                                                        //i'm not sure why this happens yet,
-                                                                        //but the capacity is rarely exceeded so i'll leave it be temporarily
+        //i'm not sure why this happens yet,
+        //but the capacity is rarely exceeded so i'll leave it be temporarily
         pool->capacity *= 2;
         LTC_TRY(ltc_realloc((void**)&pool->nodeArr, sizeof(IndexNode) * pool->capacity), "failed to expand (realloc) linked list pool")
     }
 
     *out = pool->nodeCount;
     pool->nodeCount++;
+    return ltc_success;
+}
+
+//guesses as to maximum/average needed
+#define INITIAL_LISTS_PER_POLY 5
+#define INITIAL_NODES_PER_POLY 8
+
+ltc_status initSectorPoly (SectorPolyBuilder* polyBuildData, SectorPoly* poly) {
+    LTC_TRY(getNewLListIndex(&poly->headListI, &polyBuildData->connectionListPool), "failed to get now LList index");
+    return ltc_success;
+}
+
+void initListNode (LinkedListNode* node) {
+    node->list.headNodeI = -1;
+    node->list.tailNodeI = -1;
+    node->nextListNodeI = -1;
+}
+
+void initIndexNode (IndexNode* node) {
+    node->indexVal = 0;
+    node->nextNodeI = -1;
+}
+
+ltc_status initSectorPolyBuilder(SectorPolyBuilder* polyBuildData, const DoomMap* mapData) {
+    LTC_TRY(ltc_malloc((void**)&polyBuildData->indexNodePool.nodeArr, sizeof(IndexNode) * INITIAL_NODES_PER_POLY * mapData->sectorNum), "Failed to malloc for node pool");
+    polyBuildData->indexNodePool.capacity = mapData->sectorNum * INITIAL_NODES_PER_POLY;
+    for (int n = 0; n < polyBuildData->indexNodePool.capacity; n++) {
+        initIndexNode(&polyBuildData->indexNodePool.nodeArr[n]);
+    }
+    polyBuildData->indexNodePool.nodeCount = 0;
+
+    LTC_TRY(ltc_malloc((void**)&polyBuildData->connectionListPool.nodeArr, sizeof(LinkedListNode) * INITIAL_LISTS_PER_POLY * mapData->sectorNum), "failed to malloc for linked list pool");
+    polyBuildData->connectionListPool.capacity = mapData->sectorNum * INITIAL_LISTS_PER_POLY;
+    for (int l = 0; l < polyBuildData->connectionListPool.capacity; l++) {
+        initListNode(&polyBuildData->connectionListPool.nodeArr[l]);
+    }
+    polyBuildData->connectionListPool.nodeCount = 0;
+
+    LTC_TRY(ltc_malloc((void**)&polyBuildData->sectorPolys, sizeof(SectorPoly) * mapData->sectorNum), "Failed to malloc for sector polys");
+    for (int p = 0; p < mapData->sectorNum; p++) {
+        LTC_TRY(initSectorPoly(polyBuildData, &polyBuildData->sectorPolys[p]), "failed to init a sector poly");
+    }
+
     return ltc_success;
 }
 
@@ -125,7 +124,7 @@ bool linesAreConnected (LineDef* line1, LineDef* line2) {
 
 ltc_status addLinedefToPoly(SectorPolyBuilder* polyBuildData, DoomMap* mapData, int lineI, int sectorI) {
     SectorPoly* poly = &polyBuildData->sectorPolys[sectorI];
-    LinkedListNode* curListNode = &poly->headList;
+    LinkedListNode* curListNode = &polyBuildData->connectionListPool.nodeArr[poly->headListI];
     int newNodeI = 0;
     LTC_TRY(getNewNodeIndex(&newNodeI, &polyBuildData->indexNodePool), "failed to get a new node index")
     polyBuildData->indexNodePool.nodeArr[newNodeI].indexVal = lineI;
@@ -167,9 +166,8 @@ ltc_status addLinedefToPoly(SectorPolyBuilder* polyBuildData, DoomMap* mapData, 
 }
 
 ltc_status fullCombinePolyLines(SectorPolyBuilder* polyBuildData, DoomMap* mapData, int sectorI) {
-    SectorPoly poly = polyBuildData->sectorPolys[sectorI];
-    LinkedListNode* curCombiningListNode = &poly.headList;
-
+    SectorPoly* poly = &polyBuildData->sectorPolys[sectorI];
+    LinkedListNode* curCombiningListNode = &polyBuildData->connectionListPool.nodeArr[poly->headListI];
     bool reachedConnectionListsEnd = false;
     while (!reachedConnectionListsEnd) {
 
@@ -184,7 +182,6 @@ ltc_status fullCombinePolyLines(SectorPolyBuilder* polyBuildData, DoomMap* mapDa
         LinkedListNode* checkingNode = aheadListNode;
         while (!reachedSubConnectionListsEnd) {
 
-            //TODO: REWIRE LINKED LISTS SO THAT A NODE LIST WHICH HAS BEEN COMBINED INTO A LARGER LIST IS NO LONGER PART OF THE CONNECTION LIST
             if (linesAreConnected(&mapData->lineDefs[polyBuildData->indexNodePool.nodeArr[checkingNode->list.tailNodeI].indexVal],
                 &mapData->lineDefs[polyBuildData->indexNodePool.nodeArr[curCombiningListNode->list.headNodeI].indexVal])) {
                 polyBuildData->indexNodePool.nodeArr[checkingNode->list.tailNodeI].nextNodeI = curCombiningListNode->list.headNodeI;
@@ -211,7 +208,6 @@ ltc_status fullCombinePolyLines(SectorPolyBuilder* polyBuildData, DoomMap* mapDa
                 checkingNode = &polyBuildData->connectionListPool.nodeArr[checkingNode->nextListNodeI];
             }
         }
-
         curCombiningListNode = aheadListNode;
 
     }
@@ -222,7 +218,8 @@ ltc_status fullCombinePolyLines(SectorPolyBuilder* polyBuildData, DoomMap* mapDa
 //for debug only
 void printConnectionLists(SectorPolyBuilder* polyBuildData, int polyI) {
     SectorPoly* poly = &polyBuildData->sectorPolys[polyI];
-    LinkedListNode* curListNode = &poly->headList;
+    LinkedListNode* curListNode = &polyBuildData->connectionListPool.nodeArr[poly->headListI];
+
     int listCount = 0;
     bool reachedListEnd = false;
     printf("Printing sector poly lists for sector num %i\n", polyI);
@@ -231,14 +228,18 @@ void printConnectionLists(SectorPolyBuilder* polyBuildData, int polyI) {
 
         bool reachedConnectionListEnd = false;
         IndexNode* curNode = &polyBuildData->indexNodePool.nodeArr[curListNode->list.headNodeI];
-        while (!reachedConnectionListEnd) {
-            printf("%i -> ", curNode->indexVal);
-            if (curNode->nextNodeI == -1) {
-                reachedConnectionListEnd = true;
-                printf("end\n\n");
-            } else {
-                curNode = &polyBuildData->indexNodePool.nodeArr[curNode->nextNodeI];
+        if (curListNode->list.headNodeI != -1) {
+            while (!reachedConnectionListEnd) {
+                printf("%i -> ", curNode->indexVal);
+                if (curNode->nextNodeI == -1) {
+                    reachedConnectionListEnd = true;
+                    printf("end\n\n");
+                } else {
+                    curNode = &polyBuildData->indexNodePool.nodeArr[curNode->nextNodeI];
+                }
             }
+        } else {
+            printf("empty\n");
         }
         if (curListNode->nextListNodeI == -1) {
             reachedListEnd = true;
