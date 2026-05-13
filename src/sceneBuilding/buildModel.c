@@ -232,21 +232,23 @@ ltc_status buildMapModel(MapModel* model, DoomMap* mapData) {
         if (frontSide) {
             LTC_TRY(addSide(model, frontSide, frontSector, backSector, v1, v2), MSG_ERROR_SIDE_ADD);
             if (isSectorEdge) {
-                addLinedefToPoly(polyBuilder, mapData, lineNum, mapData->sideDefs[mapData->lineDefs[lineNum].frontSideNum].sectFacing);
+                LTC_TRY(addLinedefToPoly(polyBuilder, mapData, lineNum, mapData->sideDefs[mapData->lineDefs[lineNum].frontSideNum].sectFacing), "failed to add linedef to a sector poly");
             }
         }
 
         if (backSide) {
             LTC_TRY(addSide(model, backSide, backSector, frontSector, v2, v1), MSG_ERROR_SIDE_ADD);
             if (isSectorEdge) {
-                addLinedefToPoly(polyBuilder, mapData, lineNum, mapData->sideDefs[mapData->lineDefs[lineNum].backSideNum].sectFacing);
+                LTC_TRY(addLinedefToPoly(polyBuilder, mapData, lineNum, mapData->sideDefs[mapData->lineDefs[lineNum].backSideNum].sectFacing), "failed to add linedef to a sector poly");
             }
         }
     }
 
-    printConnectionLists(polyBuilder, 15);
-    fullCombinePolyLines(polyBuilder, mapData, 15);
-    printConnectionLists(polyBuilder, 15);
+    #define testSector 153
+
+    printConnectionLists(polyBuilder, testSector);
+    LTC_TRY(fullCombinePolyLines(polyBuilder, mapData, testSector), "failed to fully combine poly lines");
+    printConnectionLists(polyBuilder, testSector);
 
     return ltc_success;
 }

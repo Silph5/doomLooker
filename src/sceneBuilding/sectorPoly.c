@@ -9,6 +9,13 @@
 
 #include "mapComponentStructs.h"
 
+typedef enum {
+    poly_initialised = 0,
+    poly_hasDefs,
+    poly_defsFullCombined,
+    poly_defsReorganised,
+} state;
+
 typedef struct {
     int indexVal;
     int nextNodeI;
@@ -44,6 +51,7 @@ struct SectorPolyBuilder{
     LinkedListPool connectionListPool;
     NodePool indexNodePool;
     SectorPoly* sectorPolys;
+    state state;
 };
 
 ltc_status getNewNodeIndex (int* out, NodePool* pool) {
@@ -93,6 +101,7 @@ void initIndexNode (IndexNode* node) {
 }
 
 ltc_status initSectorPolyBuilder(SectorPolyBuilder* polyBuildData, const DoomMap* mapData) {
+    polyBuildData->state = poly_initialised;
     LTC_TRY(ltc_malloc((void**)&polyBuildData->indexNodePool.nodeArr, sizeof(IndexNode) * INITIAL_NODES_PER_POLY * mapData->sectorNum), "Failed to malloc for node pool");
     polyBuildData->indexNodePool.capacity = mapData->sectorNum * INITIAL_NODES_PER_POLY;
     for (int n = 0; n < polyBuildData->indexNodePool.capacity; n++) {
@@ -123,6 +132,10 @@ bool linesAreConnected (LineDef* line1, LineDef* line2) {
 }
 
 ltc_status addLinedefToPoly(SectorPolyBuilder* polyBuildData, DoomMap* mapData, int lineI, int sectorI) {
+    if (polyBuildData->state != poly_initialised && polyBuildData->state != poly_hasDefs) {
+        return ltc_fail_invalid_state;
+    }
+    polyBuildData->state = poly_hasDefs;
     SectorPoly* poly = &polyBuildData->sectorPolys[sectorI];
     LinkedListNode* curListNode = &polyBuildData->connectionListPool.nodeArr[poly->headListI];
     int newNodeI = 0;
@@ -166,6 +179,10 @@ ltc_status addLinedefToPoly(SectorPolyBuilder* polyBuildData, DoomMap* mapData, 
 }
 
 ltc_status fullCombinePolyLines(SectorPolyBuilder* polyBuildData, DoomMap* mapData, int sectorI) {
+    if (polyBuildData->state != poly_hasDefs) {
+        return ltc_fail_invalid_state;
+    }
+
     SectorPoly* poly = &polyBuildData->sectorPolys[sectorI];
     LinkedListNode* curCombiningListNode = &polyBuildData->connectionListPool.nodeArr[poly->headListI];
     bool reachedConnectionListsEnd = false;
@@ -239,7 +256,7 @@ void printConnectionLists(SectorPolyBuilder* polyBuildData, int polyI) {
                 }
             }
         } else {
-            printf("empty\n");
+            printf("empty\n\n");
         }
         if (curListNode->nextListNodeI == -1) {
             reachedListEnd = true;
