@@ -17,6 +17,6 @@ typedef struct SectorPolyBuilder SectorPolyBuilder;
 ltc_status initSectorPolyBuilder(SectorPolyBuilder* polyBuildData, const DoomMap* mapData);
 void printConnectionLists(SectorPolyBuilder* polyBuildData, int polyI);
 ltc_status addLinedefToPoly(SectorPolyBuilder* polyBuildData, DoomMap* mapData, int lineI, int sectorI);
-ltc_status fullCombinePolyLines(SectorPolyBuilder* polyBuildData, DoomMap* mapData, int sectorI);
+ltc_status fullyCombinePolyLines(SectorPolyBuilder* polyBuildData, DoomMap* mapData);
 
 #endif //DOOMLOOKER_SECTORPOLY_H

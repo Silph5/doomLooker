@@ -178,11 +178,7 @@ ltc_status addLinedefToPoly(SectorPolyBuilder* polyBuildData, DoomMap* mapData, 
     return ltc_success;
 }
 
-ltc_status fullCombinePolyLines(SectorPolyBuilder* polyBuildData, DoomMap* mapData, int sectorI) {
-    if (polyBuildData->state != poly_hasDefs) {
-        return ltc_fail_invalid_state;
-    }
-
+void combinePolyLines(SectorPolyBuilder* polyBuildData, DoomMap* mapData, int sectorI) {
     SectorPoly* poly = &polyBuildData->sectorPolys[sectorI];
     LinkedListNode* curCombiningListNode = &polyBuildData->connectionListPool.nodeArr[poly->headListI];
     bool reachedConnectionListsEnd = false;
@@ -229,6 +225,18 @@ ltc_status fullCombinePolyLines(SectorPolyBuilder* polyBuildData, DoomMap* mapDa
 
     }
 
+}
+
+ltc_status fullyCombinePolyLines(SectorPolyBuilder* polyBuildData, DoomMap* mapData) {
+    if (polyBuildData->state != poly_hasDefs) {
+        return ltc_fail_invalid_state;
+    }
+
+    for (int s = 0; s < mapData->sectorNum; s++) {
+        combinePolyLines(polyBuildData, mapData, s);
+    }
+
+    polyBuildData->state = poly_defsFullCombined;
     return ltc_success;
 }
 

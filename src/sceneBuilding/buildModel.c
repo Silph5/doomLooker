@@ -247,7 +247,7 @@ ltc_status buildMapModel(MapModel* model, DoomMap* mapData) {
     #define testSector 153
 
     printConnectionLists(polyBuilder, testSector);
-    LTC_TRY(fullCombinePolyLines(polyBuilder, mapData, testSector), "failed to fully combine poly lines");
+    LTC_TRY(fullyCombinePolyLines(polyBuilder, mapData), "failed to fully combine poly lines");
     printConnectionLists(polyBuilder, testSector);
 
     return ltc_success;
