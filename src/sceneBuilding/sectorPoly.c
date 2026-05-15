@@ -54,11 +54,27 @@ struct SectorPolyBuilder{
     state state;
 };
 
+void initListNode (LinkedListNode* node) {
+    node->list.headNodeI = -1;
+    node->list.tailNodeI = -1;
+    node->nextListNodeI = -1;
+}
+
+void initIndexNode (IndexNode* node) {
+    node->indexVal = 0;
+    node->nextNodeI = -1;
+}
+
 ltc_status getNewNodeIndex (int* out, NodePool* pool) {
     if (pool->capacity <= pool->nodeCount) {
+        int newCapacity = pool->capacity*2;
         printf("sectorPoly.c - expected line index node capacity exceeded\n");
-        pool->capacity *= 2;
-        LTC_TRY(ltc_realloc((void**)&pool->nodeArr, sizeof(IndexNode) * pool->capacity), "failed to expand (realloc) poly node pool")
+        LTC_TRY(ltc_realloc((void**)&pool->nodeArr, sizeof(IndexNode) * newCapacity), "failed to expand (realloc) poly node pool");
+        for (int n = pool->capacity; n < newCapacity; n++) {
+            initIndexNode(&pool->nodeArr[n]);
+        }
+        pool->capacity = newCapacity;
+
     }
 
     *out = pool->nodeCount;
@@ -68,11 +84,13 @@ ltc_status getNewNodeIndex (int* out, NodePool* pool) {
 
 ltc_status getNewLListIndex (int* out, LinkedListPool* pool) {
     if (pool->capacity <= pool->nodeCount) {
-        printf("sectorPoly.c - expected linked list node capacity exceeded\n");  //a crash occurs when re-allocing the linked list node pool,
-        //i'm not sure why this happens yet,
-        //but the capacity is rarely exceeded so i'll leave it be temporarily
-        pool->capacity *= 2;
-        LTC_TRY(ltc_realloc((void**)&pool->nodeArr, sizeof(IndexNode) * pool->capacity), "failed to expand (realloc) linked list pool")
+        int newCapacity = pool->capacity*2;
+        printf("sectorPoly.c - expected linked list node capacity exceeded\n");
+        LTC_TRY(ltc_realloc((void**)&pool->nodeArr, sizeof(LinkedListNode) * newCapacity), "failed to expand (realloc) linked list pool");
+        for (int n = pool->capacity; n < newCapacity; n++) {
+            initListNode(&pool->nodeArr[n]);
+        }
+        pool->capacity = newCapacity;
     }
 
     *out = pool->nodeCount;
@@ -87,17 +105,6 @@ ltc_status getNewLListIndex (int* out, LinkedListPool* pool) {
 ltc_status initSectorPoly (SectorPolyBuilder* polyBuildData, SectorPoly* poly) {
     LTC_TRY(getNewLListIndex(&poly->headListI, &polyBuildData->connectionListPool), "failed to get now LList index");
     return ltc_success;
-}
-
-void initListNode (LinkedListNode* node) {
-    node->list.headNodeI = -1;
-    node->list.tailNodeI = -1;
-    node->nextListNodeI = -1;
-}
-
-void initIndexNode (IndexNode* node) {
-    node->indexVal = 0;
-    node->nextNodeI = -1;
 }
 
 ltc_status initSectorPolyBuilder(SectorPolyBuilder* polyBuildData, const DoomMap* mapData) {
@@ -197,7 +204,6 @@ void combinePolyLines(SectorPolyBuilder* polyBuildData, DoomMap* mapData, int se
 
             if (linesAreConnected(&mapData->lineDefs[polyBuildData->indexNodePool.nodeArr[checkingNode->list.tailNodeI].indexVal],
                 &mapData->lineDefs[polyBuildData->indexNodePool.nodeArr[curCombiningListNode->list.headNodeI].indexVal])) {
-
                 polyBuildData->indexNodePool.nodeArr[checkingNode->list.tailNodeI].nextNodeI = curCombiningListNode->list.headNodeI;
                 checkingNode->list.tailNodeI = curCombiningListNode->list.tailNodeI;
                 curCombiningListNode->list.headNodeI = -1;
