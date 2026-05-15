@@ -197,6 +197,7 @@ void combinePolyLines(SectorPolyBuilder* polyBuildData, DoomMap* mapData, int se
 
             if (linesAreConnected(&mapData->lineDefs[polyBuildData->indexNodePool.nodeArr[checkingNode->list.tailNodeI].indexVal],
                 &mapData->lineDefs[polyBuildData->indexNodePool.nodeArr[curCombiningListNode->list.headNodeI].indexVal])) {
+
                 polyBuildData->indexNodePool.nodeArr[checkingNode->list.tailNodeI].nextNodeI = curCombiningListNode->list.headNodeI;
                 checkingNode->list.tailNodeI = curCombiningListNode->list.tailNodeI;
                 curCombiningListNode->list.headNodeI = -1;
@@ -205,15 +206,29 @@ void combinePolyLines(SectorPolyBuilder* polyBuildData, DoomMap* mapData, int se
             }
             if (linesAreConnected(&mapData->lineDefs[polyBuildData->indexNodePool.nodeArr[checkingNode->list.headNodeI].indexVal],
                 &mapData->lineDefs[polyBuildData->indexNodePool.nodeArr[curCombiningListNode->list.tailNodeI].indexVal])) {
+
                 polyBuildData->indexNodePool.nodeArr[curCombiningListNode->list.tailNodeI].nextNodeI = checkingNode->list.headNodeI;
-                curCombiningListNode->list.tailNodeI = checkingNode->list.tailNodeI;
-                checkingNode->list.headNodeI = -1;
-                checkingNode->list.tailNodeI = -1;
+                checkingNode->list.headNodeI = curCombiningListNode->list.headNodeI;
+
+                curCombiningListNode->list.headNodeI = -1;
+                curCombiningListNode->list.tailNodeI = -1;
                 break;
             }
 
-            //TODO: HEAD + HEAD CONNECTION, TAIL + TAIL CONNECTION
-            //this will be fun.
+            if (linesAreConnected(&mapData->lineDefs[polyBuildData->indexNodePool.nodeArr[checkingNode->list.headNodeI].indexVal],
+                &mapData->lineDefs[polyBuildData->indexNodePool.nodeArr[curCombiningListNode->list.headNodeI].indexVal])) {
+
+                while (polyBuildData->indexNodePool.nodeArr[curCombiningListNode->list.headNodeI].nextNodeI != -1) {
+                    int nextCCLNodeI = polyBuildData->indexNodePool.nodeArr[curCombiningListNode->list.headNodeI].nextNodeI;
+                    polyBuildData->indexNodePool.nodeArr[curCombiningListNode->list.headNodeI].nextNodeI = checkingNode->list.headNodeI;
+                    checkingNode->list.headNodeI = curCombiningListNode->list.headNodeI;
+
+                    curCombiningListNode->list.headNodeI = nextCCLNodeI;
+                }
+                break;
+            }
+
+            //TODO: TAIL + TAIL CONNECTION
 
             if (checkingNode->nextListNodeI == -1) {
                 reachedSubConnectionListsEnd = true;
