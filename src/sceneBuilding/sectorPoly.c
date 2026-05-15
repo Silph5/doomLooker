@@ -218,13 +218,21 @@ void combinePolyLines(SectorPolyBuilder* polyBuildData, DoomMap* mapData, int se
             if (linesAreConnected(&mapData->lineDefs[polyBuildData->indexNodePool.nodeArr[checkingNode->list.headNodeI].indexVal],
                 &mapData->lineDefs[polyBuildData->indexNodePool.nodeArr[curCombiningListNode->list.headNodeI].indexVal])) {
 
-                while (polyBuildData->indexNodePool.nodeArr[curCombiningListNode->list.headNodeI].nextNodeI != -1) {
+                bool reachedEnd = false;
+                while (!reachedEnd) {
+                    if (polyBuildData->indexNodePool.nodeArr[curCombiningListNode->list.headNodeI].nextNodeI == -1) {
+                        reachedEnd = true;
+                    }
                     int nextCCLNodeI = polyBuildData->indexNodePool.nodeArr[curCombiningListNode->list.headNodeI].nextNodeI;
                     polyBuildData->indexNodePool.nodeArr[curCombiningListNode->list.headNodeI].nextNodeI = checkingNode->list.headNodeI;
                     checkingNode->list.headNodeI = curCombiningListNode->list.headNodeI;
 
                     curCombiningListNode->list.headNodeI = nextCCLNodeI;
+
                 }
+
+                curCombiningListNode->list.headNodeI = -1;
+                curCombiningListNode->list.tailNodeI = -1;
                 break;
             }
 
