@@ -204,6 +204,7 @@ void combinePolyLines(SectorPolyBuilder* polyBuildData, DoomMap* mapData, int se
 
             if (linesAreConnected(&mapData->lineDefs[polyBuildData->indexNodePool.nodeArr[checkingNode->list.tailNodeI].indexVal],
                 &mapData->lineDefs[polyBuildData->indexNodePool.nodeArr[curCombiningListNode->list.headNodeI].indexVal])) {
+
                 polyBuildData->indexNodePool.nodeArr[checkingNode->list.tailNodeI].nextNodeI = curCombiningListNode->list.headNodeI;
                 checkingNode->list.tailNodeI = curCombiningListNode->list.tailNodeI;
                 curCombiningListNode->list.headNodeI = -1;
@@ -242,7 +243,17 @@ void combinePolyLines(SectorPolyBuilder* polyBuildData, DoomMap* mapData, int se
                 break;
             }
 
-            //TODO: TAIL + TAIL CONNECTION
+            if (linesAreConnected(&mapData->lineDefs[polyBuildData->indexNodePool.nodeArr[checkingNode->list.tailNodeI].indexVal],
+                &mapData->lineDefs[polyBuildData->indexNodePool.nodeArr[curCombiningListNode->list.tailNodeI].indexVal])) {
+
+                //TODO: REVERSE CURCOMBININGLIST
+                // polyBuildData->indexNodePool.nodeArr[checkingNode->list.tailNodeI].nextNodeI = curCombiningListNode->list.headNodeI;
+                // checkingNode->list.tailNodeI = curCombiningListNode->list.tailNodeI;
+                // curCombiningListNode->list.headNodeI = -1;
+                // curCombiningListNode->list.tailNodeI = -1;
+
+                break;
+            }
 
             if (checkingNode->nextListNodeI == -1) {
                 reachedSubConnectionListsEnd = true;
