@@ -246,11 +246,27 @@ void combinePolyLines(SectorPolyBuilder* polyBuildData, DoomMap* mapData, int se
             if (linesAreConnected(&mapData->lineDefs[polyBuildData->indexNodePool.nodeArr[checkingNode->list.tailNodeI].indexVal],
                 &mapData->lineDefs[polyBuildData->indexNodePool.nodeArr[curCombiningListNode->list.tailNodeI].indexVal])) {
 
-                //TODO: REVERSE CURCOMBININGLIST
-                // polyBuildData->indexNodePool.nodeArr[checkingNode->list.tailNodeI].nextNodeI = curCombiningListNode->list.headNodeI;
-                // checkingNode->list.tailNodeI = curCombiningListNode->list.tailNodeI;
-                // curCombiningListNode->list.headNodeI = -1;
-                // curCombiningListNode->list.tailNodeI = -1;
+                //reverse linked list
+                int prevNodeI = -1;
+                int currentNodeI = curCombiningListNode->list.headNodeI;
+                int oldHeadNodeI = curCombiningListNode->list.headNodeI;
+
+                while (currentNodeI != -1) {
+                    int nextNodeI = polyBuildData->indexNodePool.nodeArr[currentNodeI].nextNodeI;
+
+                    polyBuildData->indexNodePool.nodeArr[currentNodeI].nextNodeI = prevNodeI;
+
+                    prevNodeI = currentNodeI;
+                    currentNodeI = nextNodeI;
+                }
+
+                curCombiningListNode->list.headNodeI = prevNodeI;
+                curCombiningListNode->list.tailNodeI = oldHeadNodeI;
+
+                polyBuildData->indexNodePool.nodeArr[checkingNode->list.tailNodeI].nextNodeI = curCombiningListNode->list.headNodeI;
+                checkingNode->list.tailNodeI = curCombiningListNode->list.tailNodeI;
+                curCombiningListNode->list.headNodeI = -1;
+                curCombiningListNode->list.tailNodeI = -1;
 
                 break;
             }
