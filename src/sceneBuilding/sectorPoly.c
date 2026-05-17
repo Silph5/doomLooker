@@ -4,7 +4,6 @@
 
 #include "../../include/sectorPoly.h"
 
-#include <bemapiset.h>
 #include <stdbool.h>
 
 #include "mapComponentStructs.h"
@@ -131,14 +130,14 @@ ltc_status initSectorPolyBuilder(SectorPolyBuilder* polyBuildData, const DoomMap
     return ltc_success;
 }
 
-bool linesAreConnected (LineDef* line1, LineDef* line2) {
+bool linesAreConnected (const LineDef* line1, const LineDef* line2) {
     if (line1->v1 == line2->v1 || line1->v1 == line2->v2 || line1->v2 == line2->v1 || line1->v2 == line2->v2) {
         return true;
     }
     return false;
 }
 
-ltc_status addLinedefToPoly(SectorPolyBuilder* polyBuildData, DoomMap* mapData, int lineI, int sectorI) {
+ltc_status addLinedefToPoly(SectorPolyBuilder* polyBuildData, const DoomMap* mapData, const int lineI, const int sectorI) {
     if (polyBuildData->state != poly_initialised && polyBuildData->state != poly_hasDefs) {
         return ltc_fail_invalid_state;
     }
@@ -185,7 +184,7 @@ ltc_status addLinedefToPoly(SectorPolyBuilder* polyBuildData, DoomMap* mapData, 
     return ltc_success;
 }
 
-void combinePolyLines(SectorPolyBuilder* polyBuildData, DoomMap* mapData, int sectorI) {
+void combinePolyLines(const SectorPolyBuilder* polyBuildData, const DoomMap* mapData, const int sectorI) {
     SectorPoly* poly = &polyBuildData->sectorPolys[sectorI];
     LinkedListNode* curCombiningListNode = &polyBuildData->connectionListPool.nodeArr[poly->headListI];
     bool reachedConnectionListsEnd = false;
@@ -283,7 +282,7 @@ void combinePolyLines(SectorPolyBuilder* polyBuildData, DoomMap* mapData, int se
 
 }
 
-ltc_status fullyCombinePolyLines(SectorPolyBuilder* polyBuildData, DoomMap* mapData) {
+ltc_status fullyCombinePolyLines(SectorPolyBuilder* polyBuildData, const DoomMap* mapData) {
     if (polyBuildData->state != poly_hasDefs) {
         return ltc_fail_invalid_state;
     }
@@ -297,7 +296,7 @@ ltc_status fullyCombinePolyLines(SectorPolyBuilder* polyBuildData, DoomMap* mapD
 }
 
 //for debug only
-void printConnectionLists(SectorPolyBuilder* polyBuildData, int polyI) {
+void printConnectionLists(const SectorPolyBuilder* polyBuildData, const int polyI) {
     SectorPoly* poly = &polyBuildData->sectorPolys[polyI];
     LinkedListNode* curListNode = &polyBuildData->connectionListPool.nodeArr[poly->headListI];
 
@@ -307,9 +306,9 @@ void printConnectionLists(SectorPolyBuilder* polyBuildData, int polyI) {
     while (!reachedListEnd) {
         printf("CONNECTION LIST %i\n", listCount);
 
-        bool reachedConnectionListEnd = false;
         IndexNode* curNode = &polyBuildData->indexNodePool.nodeArr[curListNode->list.headNodeI];
         if (curListNode->list.headNodeI != -1) {
+            bool reachedConnectionListEnd = false;
             while (!reachedConnectionListEnd) {
                 printf("%i -> ", curNode->indexVal);
                 if (curNode->nextNodeI == -1) {
