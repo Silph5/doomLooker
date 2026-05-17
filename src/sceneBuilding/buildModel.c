@@ -225,7 +225,7 @@ ltc_status buildMapModel(MapModel* model, DoomMap* mapData) {
             backSector = &mapData->sectors[backSide->sectFacing];
         }
 
-        if (mapData->lineDefs[lineNum].frontSideNum != mapData->lineDefs[lineNum].backSideNum) {
+        if (frontSector != backSector) {
             isSectorEdge = true;
         }
 
@@ -244,7 +244,7 @@ ltc_status buildMapModel(MapModel* model, DoomMap* mapData) {
         }
     }
 
-    #define testSector 54
+    #define testSector 117
 
     printConnectionLists(polyBuilder, testSector);
     LTC_TRY(fullyCombinePolyLines(polyBuilder, mapData), "failed to fully combine poly lines");
