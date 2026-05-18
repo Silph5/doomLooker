@@ -280,6 +280,27 @@ void combinePolyLines(const SectorPolyBuilder* polyBuildData, const DoomMap* map
 
     }
 
+    //checking through the full list again to see if there are any rings which do not have their head and tail node connect, and discard them if so
+    // LinkedListNode* discardCheckingNode = &polyBuildData->connectionListPool.nodeArr[poly->headListI];
+    // reachedConnectionListsEnd = false;
+    // while (!reachedConnectionListsEnd) {
+    //     if (discardCheckingNode->nextListNodeI == -1) {
+    //         reachedConnectionListsEnd = true;
+    //     }
+    //
+    //     if (discardCheckingNode->list.headNodeI == -1) {
+    //         discardCheckingNode = &polyBuildData->connectionListPool.nodeArr[discardCheckingNode->nextListNodeI];
+    //         continue;
+    //     }
+    //
+    //     if (!linesAreConnected(&mapData->lineDefs[polyBuildData->indexNodePool.nodeArr[discardCheckingNode->list.headNodeI].indexVal],
+    //         &mapData->lineDefs[polyBuildData->indexNodePool.nodeArr[discardCheckingNode->list.tailNodeI].indexVal])) {
+    //         discardCheckingNode->list.headNodeI = -1;
+    //         discardCheckingNode->list.tailNodeI = -1;
+    //     }
+    //     discardCheckingNode = &polyBuildData->connectionListPool.nodeArr[discardCheckingNode->nextListNodeI];
+    // }
+    //TODO: tail node is being improperly updated somewhere, causing this to break. Line 337 shows this via diagnostic
 }
 
 ltc_status fullyCombinePolyLines(SectorPolyBuilder* polyBuildData, const DoomMap* mapData) {
@@ -313,7 +334,8 @@ void printConnectionLists(const SectorPolyBuilder* polyBuildData, const int poly
                 printf("%i -> ", curNode->indexVal);
                 if (curNode->nextNodeI == -1) {
                     reachedConnectionListEnd = true;
-                    printf("end\n\n");
+                    printf("end\n h: %i t: %i\n\n", polyBuildData->indexNodePool.nodeArr[curListNode->list.headNodeI].indexVal, polyBuildData->indexNodePool.nodeArr[curListNode->list.tailNodeI].indexVal);
+
                 } else {
                     curNode = &polyBuildData->indexNodePool.nodeArr[curNode->nextNodeI];
                 }
