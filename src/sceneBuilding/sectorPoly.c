@@ -164,6 +164,7 @@ ltc_status addLinedefToPoly(SectorPolyBuilder* polyBuildData, const DoomMap* map
 
         if (linesAreConnected(&mapData->lineDefs[polyBuildData->indexNodePool.nodeArr[curListNode->list.tailNodeI].indexVal], &mapData->lineDefs[lineI])) {
             polyBuildData->indexNodePool.nodeArr[curListNode->list.tailNodeI].nextNodeI = newNodeI;
+            curListNode->list.tailNodeI = newNodeI;
             polyBuildData->indexNodePool.nodeArr[newNodeI].nextNodeI = -1;
             return ltc_success;
         }
@@ -280,27 +281,26 @@ void combinePolyLines(const SectorPolyBuilder* polyBuildData, const DoomMap* map
 
     }
 
-    //checking through the full list again to see if there are any rings which do not have their head and tail node connect, and discard them if so
-    // LinkedListNode* discardCheckingNode = &polyBuildData->connectionListPool.nodeArr[poly->headListI];
-    // reachedConnectionListsEnd = false;
-    // while (!reachedConnectionListsEnd) {
-    //     if (discardCheckingNode->nextListNodeI == -1) {
-    //         reachedConnectionListsEnd = true;
-    //     }
-    //
-    //     if (discardCheckingNode->list.headNodeI == -1) {
-    //         discardCheckingNode = &polyBuildData->connectionListPool.nodeArr[discardCheckingNode->nextListNodeI];
-    //         continue;
-    //     }
-    //
-    //     if (!linesAreConnected(&mapData->lineDefs[polyBuildData->indexNodePool.nodeArr[discardCheckingNode->list.headNodeI].indexVal],
-    //         &mapData->lineDefs[polyBuildData->indexNodePool.nodeArr[discardCheckingNode->list.tailNodeI].indexVal])) {
-    //         discardCheckingNode->list.headNodeI = -1;
-    //         discardCheckingNode->list.tailNodeI = -1;
-    //     }
-    //     discardCheckingNode = &polyBuildData->connectionListPool.nodeArr[discardCheckingNode->nextListNodeI];
-    // }
-    //TODO: tail node is being improperly updated somewhere, causing this to break. Line 337 shows this via diagnostic
+     LinkedListNode* discardCheckingNode = &polyBuildData->connectionListPool.nodeArr[poly->headListI];
+     reachedConnectionListsEnd = false;
+     while (!reachedConnectionListsEnd) {
+         if (discardCheckingNode->nextListNodeI == -1) {
+             reachedConnectionListsEnd = true;
+         }
+
+         if (discardCheckingNode->list.headNodeI == -1) {
+             discardCheckingNode = &polyBuildData->connectionListPool.nodeArr[discardCheckingNode->nextListNodeI];
+             continue;
+         }
+
+         if (!linesAreConnected(&mapData->lineDefs[polyBuildData->indexNodePool.nodeArr[discardCheckingNode->list.headNodeI].indexVal],
+             &mapData->lineDefs[polyBuildData->indexNodePool.nodeArr[discardCheckingNode->list.tailNodeI].indexVal])) {
+             //printf("got one.");
+             discardCheckingNode->list.headNodeI = -1;
+             discardCheckingNode->list.tailNodeI = -1;
+         }
+         discardCheckingNode = &polyBuildData->connectionListPool.nodeArr[discardCheckingNode->nextListNodeI];
+     }
 }
 
 ltc_status fullyCombinePolyLines(SectorPolyBuilder* polyBuildData, const DoomMap* mapData) {
