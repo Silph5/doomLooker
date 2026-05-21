@@ -23,6 +23,7 @@ typedef struct {
 typedef struct {
     int headNodeI;
     int tailNodeI;
+    int nodeCount;
 } IndexedLinkedList;
 
 typedef struct {
@@ -56,6 +57,7 @@ struct SectorPolyBuilder{
 void initListNode (LinkedListNode* node) {
     node->list.headNodeI = -1;
     node->list.tailNodeI = -1;
+    node->list.nodeCount = 0;
     node->nextListNodeI = -1;
 }
 
@@ -153,12 +155,14 @@ ltc_status addLinedefToPoly(SectorPolyBuilder* polyBuildData, const DoomMap* map
         if (curListNode->list.headNodeI == -1) {
             curListNode->list.headNodeI = newNodeI;
             curListNode->list.tailNodeI = newNodeI;
+            curListNode->list.nodeCount++;
             return ltc_success;
         }
 
         if (linesAreConnected(&mapData->lineDefs[polyBuildData->indexNodePool.nodeArr[curListNode->list.headNodeI].indexVal], &mapData->lineDefs[lineI])) {
             polyBuildData->indexNodePool.nodeArr[newNodeI].nextNodeI = curListNode->list.headNodeI;
             curListNode->list.headNodeI = newNodeI;
+            curListNode->list.nodeCount++;
             return ltc_success;
         }
 
@@ -166,6 +170,7 @@ ltc_status addLinedefToPoly(SectorPolyBuilder* polyBuildData, const DoomMap* map
             polyBuildData->indexNodePool.nodeArr[curListNode->list.tailNodeI].nextNodeI = newNodeI;
             curListNode->list.tailNodeI = newNodeI;
             polyBuildData->indexNodePool.nodeArr[newNodeI].nextNodeI = -1;
+            curListNode->list.nodeCount++;
             return ltc_success;
         }
 
@@ -209,6 +214,9 @@ void combinePolyLines(const SectorPolyBuilder* polyBuildData, const DoomMap* map
                 checkingNode->list.tailNodeI = curCombiningListNode->list.tailNodeI;
                 curCombiningListNode->list.headNodeI = -1;
                 curCombiningListNode->list.tailNodeI = -1;
+                checkingNode->list.nodeCount += curCombiningListNode->list.nodeCount++;
+                curCombiningListNode->list.nodeCount = 0;
+
                 break;
             }
             if (linesAreConnected(&mapData->lineDefs[polyBuildData->indexNodePool.nodeArr[checkingNode->list.headNodeI].indexVal],
@@ -216,7 +224,9 @@ void combinePolyLines(const SectorPolyBuilder* polyBuildData, const DoomMap* map
 
                 polyBuildData->indexNodePool.nodeArr[curCombiningListNode->list.tailNodeI].nextNodeI = checkingNode->list.headNodeI;
                 checkingNode->list.headNodeI = curCombiningListNode->list.headNodeI;
+                checkingNode->list.nodeCount += curCombiningListNode->list.nodeCount++;
 
+                curCombiningListNode->list.nodeCount = 0;
                 curCombiningListNode->list.headNodeI = -1;
                 curCombiningListNode->list.tailNodeI = -1;
                 break;
@@ -237,7 +247,9 @@ void combinePolyLines(const SectorPolyBuilder* polyBuildData, const DoomMap* map
                     curCombiningListNode->list.headNodeI = nextCCLNodeI;
 
                 }
+                checkingNode->list.nodeCount += curCombiningListNode->list.nodeCount++;
 
+                curCombiningListNode->list.nodeCount = 0;
                 curCombiningListNode->list.headNodeI = -1;
                 curCombiningListNode->list.tailNodeI = -1;
                 break;
@@ -265,6 +277,8 @@ void combinePolyLines(const SectorPolyBuilder* polyBuildData, const DoomMap* map
 
                 polyBuildData->indexNodePool.nodeArr[checkingNode->list.tailNodeI].nextNodeI = curCombiningListNode->list.headNodeI;
                 checkingNode->list.tailNodeI = curCombiningListNode->list.tailNodeI;
+                checkingNode->list.nodeCount += curCombiningListNode->list.nodeCount++;
+                curCombiningListNode->list.nodeCount = 0;
                 curCombiningListNode->list.headNodeI = -1;
                 curCombiningListNode->list.tailNodeI = -1;
 
@@ -334,7 +348,7 @@ void printConnectionLists(const SectorPolyBuilder* polyBuildData, const int poly
                 printf("%i -> ", curNode->indexVal);
                 if (curNode->nextNodeI == -1) {
                     reachedConnectionListEnd = true;
-                    printf("end\n h: %i t: %i\n\n", polyBuildData->indexNodePool.nodeArr[curListNode->list.headNodeI].indexVal, polyBuildData->indexNodePool.nodeArr[curListNode->list.tailNodeI].indexVal);
+                    printf("end\n h: %i t: %i c: %i\n\n", polyBuildData->indexNodePool.nodeArr[curListNode->list.headNodeI].indexVal, polyBuildData->indexNodePool.nodeArr[curListNode->list.tailNodeI].indexVal, curListNode->list.nodeCount);
 
                 } else {
                     curNode = &polyBuildData->indexNodePool.nodeArr[curNode->nextNodeI];
